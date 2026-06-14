@@ -107,26 +107,27 @@ const EvaluationPanel = () => {
     if (!window.confirm("¿Está seguro que desea FINALIZAR y enviar estas calificaciones? No podrá modificarlas después.")) return;
 
     try {
-      if (activeTab === 'escrito') {
-        await supabase.from('evaluations_written').upsert({
-          group_id: groupId,
+      // 1. Guardar Proyecto Escrito
+      await supabase.from('evaluations_written').upsert({
+        group_id: groupId,
+        evaluator_role: role,
+        ...writtenScores,
+        status: 'completed',
+        updated_at: new Date()
+      }, { onConflict: 'group_id, evaluator_role' });
+
+      // 2. Guardar Defensa Oral
+      const oralPromises = students.map(s => {
+        return supabase.from('evaluations_oral').upsert({
+          student_id: s.id,
           evaluator_role: role,
-          ...writtenScores,
+          ...oralScores[s.id],
           status: 'completed',
           updated_at: new Date()
-        }, { onConflict: 'group_id, evaluator_role' });
-      } else if (activeTab === 'oral') {
-        const oralPromises = students.map(s => {
-          return supabase.from('evaluations_oral').upsert({
-            student_id: s.id,
-            evaluator_role: role,
-            ...oralScores[s.id],
-            status: 'completed',
-            updated_at: new Date()
-          }, { onConflict: 'student_id, evaluator_role' });
-        });
-        await Promise.all(oralPromises);
-      }
+        }, { onConflict: 'student_id, evaluator_role' });
+      });
+      await Promise.all(oralPromises);
+      
       setView('summary');
     } catch (error) {
       alert("Error al enviar calificaciones: " + error.message);
