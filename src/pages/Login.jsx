@@ -45,8 +45,17 @@ const Login = () => {
         } else {
           localStorage.setItem('userRole', role);
           localStorage.setItem('groupId', upperCode);
+          
+          // Auto-registro silencioso para la sala de espera
+          await supabase.from('teachers_registry').upsert({
+            group_id: upperCode,
+            role: role,
+            full_name: `Docente ${role}`,
+            created_at: new Date()
+          }, { onConflict: 'group_id, role' });
+
           window.dispatchEvent(new Event('authChange'));
-          navigate(`/profile/${upperCode}`);
+          navigate(`/evaluate/${upperCode}`);
         }
       }
     } catch (err) {

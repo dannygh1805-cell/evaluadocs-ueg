@@ -3,7 +3,6 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import EvaluationPanel from './pages/EvaluationPanel';
-import TeacherProfileForm from './pages/TeacherProfileForm';
 import Navbar from './components/Navbar';
 
 function App() {
@@ -36,18 +35,13 @@ function App() {
             />
             
             <Route 
-              path="/profile/:groupId" 
-              element={isAuthenticated && userRole !== 'admin' ? <TeacherProfileForm /> : <Navigate to="/login" />} 
-            />
-
-            <Route 
               path="/evaluate/:groupId" 
               element={isAuthenticated && userRole !== 'admin' ? <EvaluationPanel /> : <Navigate to="/login" />} 
             />
             
             <Route 
               path="*" 
-              element={<Navigate to={isAuthenticated ? (userRole === 'admin' ? '/admin' : `/profile/${groupId}`) : '/login'} />} 
+              element={<Navigate to={isAuthenticated ? (userRole === 'admin' ? '/admin' : `/evaluate/${groupId}`) : '/login'} />} 
             />
           </Routes>
         </div>
