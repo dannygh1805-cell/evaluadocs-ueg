@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import EvaluationPanel from './pages/EvaluationPanel';
@@ -11,7 +11,7 @@ function App() {
   const userRole = 'admin'; // 'admin', 'tutor', 'guia', 'revisor'
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       {isAuthenticated && <Navbar userRole={userRole} />}
       <main className="main-content">
         <div className="container">
@@ -37,7 +37,7 @@ function App() {
           </Routes>
         </div>
       </main>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
