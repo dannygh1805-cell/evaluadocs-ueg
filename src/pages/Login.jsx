@@ -30,7 +30,7 @@ const Login = () => {
         // Verificar si el grupo existe en la base de datos
         const { data, error: fetchError } = await supabase
           .from('groups')
-          .select('id')
+          .select('id, evaluation_status')
           .eq('id', upperCode)
           .single();
 
@@ -39,10 +39,12 @@ const Login = () => {
           setError(`Error de conexión: ${fetchError.message || 'Verifica la base de datos'}`);
         } else if (!data) {
           setError('El código de grupo no existe. Verifica e intenta de nuevo (ej. G-A1).');
+        } else if (data.evaluation_status !== 'in_progress') {
+          setError('El administrador aún no ha iniciado la evaluación para este grupo.');
         } else {
           localStorage.setItem('userRole', role);
           localStorage.setItem('groupId', upperCode);
-          navigate(`/evaluate/${upperCode}`);
+          navigate(`/profile/${upperCode}`); // Redirigir al perfil del docente primero
         }
       }
     } catch (err) {

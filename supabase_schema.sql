@@ -1,14 +1,14 @@
 -- ==========================================
--- SCHEMA PARA APLICACIÓN DE CALIFICACIONES (ACTUALIZADO SIN TABLA DE USERS)
+-- SCHEMA PARA APLICACIÓN DE CALIFICACIONES (FASE 3)
 -- ==========================================
 
 -- Limpiar base de datos si ya existe
+DROP TABLE IF EXISTS public.teachers_registry CASCADE;
 DROP TABLE IF EXISTS public.evaluations_practical CASCADE;
 DROP TABLE IF EXISTS public.evaluations_oral CASCADE;
 DROP TABLE IF EXISTS public.evaluations_written CASCADE;
 DROP TABLE IF EXISTS public.students CASCADE;
 DROP TABLE IF EXISTS public.groups CASCADE;
-DROP TABLE IF EXISTS public.users CASCADE;
 
 -- Tabla de Grupos / Proyectos
 CREATE TABLE public.groups (
@@ -18,8 +18,22 @@ CREATE TABLE public.groups (
     tutor_name TEXT NOT NULL,
     guia_name TEXT NOT NULL,
     revisor_name TEXT NOT NULL,
-    penalty_percentage DECIMAL DEFAULT 0.5, -- Cuántos puntos se descuentan por cada % adicional de plagio (> 15%)
+    plagiarism_percentage DECIMAL DEFAULT 0,
+    ai_percentage DECIMAL DEFAULT 0,
+    evaluation_status TEXT DEFAULT 'pending' CHECK (evaluation_status IN ('pending', 'in_progress', 'completed')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Tabla de Registro de Docentes
+CREATE TABLE public.teachers_registry (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    group_id TEXT REFERENCES public.groups(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('tutor', 'guia', 'revisor')),
+    full_name TEXT NOT NULL,
+    cedula TEXT NOT NULL,
+    cellphone TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(group_id, role)
 );
 
 -- Tabla de Estudiantes
@@ -30,32 +44,41 @@ CREATE TABLE public.students (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Tabla de Calificaciones del Proyecto Escrito (Grupal por rol de docente)
+-- Tabla de Calificaciones del Proyecto Escrito (14 Parámetros - 10 puntos c/u)
 CREATE TABLE public.evaluations_written (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     group_id TEXT REFERENCES public.groups(id) ON DELETE CASCADE,
     evaluator_role TEXT NOT NULL CHECK (evaluator_role IN ('tutor', 'guia', 'revisor')),
     
-    score_intro DECIMAL CHECK (score_intro >= 0 AND score_intro <= 10),
-    score_diagnostic DECIMAL CHECK (score_diagnostic >= 0 AND score_diagnostic <= 10),
-    score_conceptual DECIMAL CHECK (score_conceptual >= 0 AND score_conceptual <= 10),
-    score_development DECIMAL CHECK (score_development >= 0 AND score_development <= 10),
-    score_results DECIMAL CHECK (score_results >= 0 AND score_results <= 10),
-    score_conclusions DECIMAL CHECK (score_conclusions >= 0 AND score_conclusions <= 10),
-    score_writing DECIMAL CHECK (score_writing >= 0 AND score_writing <= 10),
-    score_ai_ethics DECIMAL CHECK (score_ai_ethics >= 0 AND score_ai_ethics <= 10),
-    score_apa DECIMAL CHECK (score_apa >= 0 AND score_apa <= 10),
+    -- Primera parte (5)
+    score_introduccion DECIMAL CHECK (score_introduccion >= 0 AND score_introduccion <= 10),
+    score_antecedentes DECIMAL CHECK (score_antecedentes >= 0 AND score_antecedentes <= 10),
+    score_definicion_problema DECIMAL CHECK (score_definicion_problema >= 0 AND score_definicion_problema <= 10),
+    score_justificacion DECIMAL CHECK (score_justificacion >= 0 AND score_justificacion <= 10),
+    score_objetivos DECIMAL CHECK (score_objetivos >= 0 AND score_objetivos <= 10),
     
-    plagiarism_percentage DECIMAL DEFAULT 0,
-    raw_score DECIMAL,
-    final_score DECIMAL,
+    -- Segunda parte (4)
+    score_marco_conceptual DECIMAL CHECK (score_marco_conceptual >= 0 AND score_marco_conceptual <= 10),
+    score_marco_metodologico DECIMAL CHECK (score_marco_metodologico >= 0 AND score_marco_metodologico <= 10),
+    score_resultados DECIMAL CHECK (score_resultados >= 0 AND score_resultados <= 10),
+    score_analisis DECIMAL CHECK (score_analisis >= 0 AND score_analisis <= 10),
+    
+    -- Tercera parte (2)
+    score_conclusiones DECIMAL CHECK (score_conclusiones >= 0 AND score_conclusiones <= 10),
+    score_recomendaciones DECIMAL CHECK (score_recomendaciones >= 0 AND score_recomendaciones <= 10),
+    
+    -- Cuarta parte (3) -> (Original eran 2 más AI/APA que fueron quitadas o reestructuradas, pero ponemos Referencias y Anexos, y la Presentación final si aplica. Ajustado a 14)
+    score_referencias DECIMAL CHECK (score_referencias >= 0 AND score_referencias <= 10),
+    score_anexos DECIMAL CHECK (score_anexos >= 0 AND score_anexos <= 10),
+    score_formato DECIMAL CHECK (score_formato >= 0 AND score_formato <= 10), -- (Alineación, interlineado APA, etc.)
+    
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     UNIQUE(group_id, evaluator_role)
 );
 
--- Tabla de Calificaciones Defensa Oral (Individual por rol docente)
+-- Tabla de Calificaciones Defensa Oral
 CREATE TABLE public.evaluations_oral (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
@@ -66,18 +89,17 @@ CREATE TABLE public.evaluations_oral (
     score_answers DECIMAL CHECK (score_answers >= 0 AND score_answers <= 10),
     score_time DECIMAL CHECK (score_time >= 0 AND score_time <= 10),
     
-    final_score DECIMAL,
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     UNIQUE(student_id, evaluator_role)
 );
 
--- Tabla de Calificaciones Proyecto Práctico (Individual, solo Tutor)
+-- Tabla de Calificaciones Proyecto Práctico (Admin)
 CREATE TABLE public.evaluations_practical (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
-    evaluator_role TEXT DEFAULT 'tutor' CHECK (evaluator_role = 'tutor'), 
+    evaluator_role TEXT DEFAULT 'admin' CHECK (evaluator_role = 'admin'), 
     final_score DECIMAL CHECK (final_score >= 0 AND final_score <= 10),
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -85,18 +107,30 @@ CREATE TABLE public.evaluations_practical (
     UNIQUE(student_id, evaluator_role)
 );
 
--- Desactivar temporalmente el RLS para desarrollo sin autenticación
-ALTER TABLE public.groups DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.students DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.evaluations_written DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.evaluations_oral DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.evaluations_practical DISABLE ROW LEVEL SECURITY;
+-- ==========================================
+-- POLÍTICAS DE SEGURIDAD (Permitir acceso público por la falta de auth real)
+-- ==========================================
+ALTER TABLE public.groups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public groups" ON public.groups FOR ALL USING (true);
+
+ALTER TABLE public.teachers_registry ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public teachers" ON public.teachers_registry FOR ALL USING (true);
+
+ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public students" ON public.students FOR ALL USING (true);
+
+ALTER TABLE public.evaluations_written ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public written" ON public.evaluations_written FOR ALL USING (true);
+
+ALTER TABLE public.evaluations_oral ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public oral" ON public.evaluations_oral FOR ALL USING (true);
+
+ALTER TABLE public.evaluations_practical ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public practical" ON public.evaluations_practical FOR ALL USING (true);
 
 -- ==========================================
 -- CARGA DE DATOS SEMILLA (22 GRUPOS)
 -- ==========================================
-
--- 3° BGU A
 INSERT INTO public.groups (id, course, tutor_name, guia_name, revisor_name) VALUES
 ('G-A1', '3 BGU A', 'Héctor Pérez', 'CRESPO BÉLGICA', 'Geovana Aldaz'),
 ('G-A2', '3 BGU A', 'Pamela Sánchez', 'PÉREZ HÉCTOR', 'Gavilanes Omar'),
@@ -110,7 +144,6 @@ INSERT INTO public.groups (id, course, tutor_name, guia_name, revisor_name) VALU
 ('G-A10', '3 BGU A', 'Héctor Pérez', 'FABARA GABRIELA', 'Masabanda Narciza'),
 ('G-A11', '3 BGU A', 'Héctor Pérez', 'GUACHICHULCA RAQUEL', 'Chato Juan');
 
--- 3° BGU B
 INSERT INTO public.groups (id, course, tutor_name, guia_name, revisor_name) VALUES
 ('G-B1', '3 BGU B', 'Pamela Sánchez', 'CRESPO BÉLGICA', 'Masabanda Narciza'),
 ('G-B2', '3 BGU B', 'Pamela Sánchez', 'PÉREZ HÉCTOR', 'León Lorena'),
@@ -124,7 +157,6 @@ INSERT INTO public.groups (id, course, tutor_name, guia_name, revisor_name) VALU
 ('G-B10', '3 BGU B', 'Pamela Sánchez', 'GUACHICHULCA RAQUEL', 'Chato Juan'),
 ('G-B11', '3 BGU B', 'Pamela Sánchez', 'MASABANDA NARCIZA', 'Gavilanes Daniel');
 
--- Insertar Estudiantes (3 BGU A)
 INSERT INTO public.students (group_id, full_name) VALUES
 ('G-A1', 'MORENO QUINATOA JORGE BRYAN'), ('G-A1', 'CHERREZ BUÑAY ANA PAULA'), ('G-A1', 'TIBANLOMBO MANOBANDA KEVIN ALEXANDER'),
 ('G-A2', 'SANCHEZ BAYAS SHIRLEY ODALIS'), ('G-A2', 'GUALI VILLAGOMEZ EMILY MONSERRATH'), ('G-A2', 'FREIRE YAULI JOFFRE LEONARDO'),
@@ -138,7 +170,6 @@ INSERT INTO public.students (group_id, full_name) VALUES
 ('G-A10', 'TARCO CACHUPUD DARWIN DAMIAN'), ('G-A10', 'MOLINA COBO SAMANTHA DANAE'), ('G-A10', 'OÑA LANDAZURI IAN FERNANDO'),
 ('G-A11', 'GARCIA PEREZ LEONARDO STEVEN'), ('G-A11', 'DIAS QUINCHE LENN ARIEL'), ('G-A11', 'SANTILLAN JORDAN DANIEL ROBERTO');
 
--- Insertar Estudiantes (3 BGU B)
 INSERT INTO public.students (group_id, full_name) VALUES
 ('G-B1', 'PUCUNA CHATO EVELYN NOEMY'), ('G-B1', 'GUARANGA PILLAJO SARA MAYLI'), ('G-B1', 'TOAQUIZA CHALUISA ANDERSON JOSUE'),
 ('G-B2', 'MORENO BARONA MILEY JASLENE'), ('G-B2', 'CAIZA LARA JOSELYN ADRIANA'), ('G-B2', 'PEREZ BAYAS CELESTE ANAHI'),
