@@ -22,7 +22,7 @@ const Login = () => {
         if (upperCode === 'ADMIN-UEG') {
           localStorage.setItem('userRole', 'admin');
           localStorage.setItem('groupId', 'ALL');
-          window.location.href = '/#/admin';
+          window.location.hash = '#/admin';
           window.location.reload();
         } else {
           setError('Código de administrador incorrecto.');
@@ -45,7 +45,7 @@ const Login = () => {
         } else {
           localStorage.setItem('userRole', role);
           localStorage.setItem('groupId', upperCode);
-          window.location.href = `/#/profile/${upperCode}`;
+          window.location.hash = `#/profile/${upperCode}`;
           window.location.reload();
         }
       }

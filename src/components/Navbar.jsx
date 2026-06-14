@@ -8,7 +8,7 @@ const Navbar = ({ userRole, groupId }) => {
   const handleLogout = () => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('groupId');
-    window.location.href = '/#/login';
+    window.location.hash = '#/login';
     window.location.reload();
   };
 
