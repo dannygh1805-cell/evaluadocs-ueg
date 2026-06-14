@@ -34,7 +34,10 @@ const Login = () => {
           .eq('id', upperCode)
           .single();
 
-        if (fetchError || !data) {
+        if (fetchError) {
+          console.error("Supabase Error:", fetchError);
+          setError(`Error de conexión: ${fetchError.message || 'Verifica la base de datos'}`);
+        } else if (!data) {
           setError('El código de grupo no existe. Verifica e intenta de nuevo (ej. G-A1).');
         } else {
           localStorage.setItem('userRole', role);
