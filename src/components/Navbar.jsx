@@ -8,7 +8,8 @@ const Navbar = ({ userRole, groupId }) => {
   const handleLogout = () => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('groupId');
-    navigate('/login');
+    window.location.href = '/#/login';
+    window.location.reload();
   };
 
   const getRoleLabel = () => {

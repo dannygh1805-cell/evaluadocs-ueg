@@ -22,7 +22,8 @@ const Login = () => {
         if (upperCode === 'ADMIN-UEG') {
           localStorage.setItem('userRole', 'admin');
           localStorage.setItem('groupId', 'ALL');
-          navigate('/admin');
+          window.location.href = '/#/admin';
+          window.location.reload();
         } else {
           setError('Código de administrador incorrecto.');
         }
@@ -44,7 +45,8 @@ const Login = () => {
         } else {
           localStorage.setItem('userRole', role);
           localStorage.setItem('groupId', upperCode);
-          navigate(`/profile/${upperCode}`); // Redirigir al perfil del docente primero
+          window.location.href = `/#/profile/${upperCode}`;
+          window.location.reload();
         }
       }
     } catch (err) {
