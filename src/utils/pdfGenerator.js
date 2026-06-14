@@ -30,6 +30,11 @@ export const generateReport = (groupData, evaluationData) => {
     ]
   });
 
+  const getTeacherName = (role) => {
+    const t = groupData.teachers_registry?.find(t => t.role === role);
+    return t ? t.full_name : `Docente ${role}`;
+  };
+
   // Comisión Calificadora
   doc.autoTable({
     startY: doc.lastAutoTable.finalY + 10,
@@ -37,9 +42,9 @@ export const generateReport = (groupData, evaluationData) => {
     head: [['Cargo', 'Nombre']],
     headStyles: { fillColor: secondaryColor, textColor: 0 },
     body: [
-      ['Docente Tutor', groupData.tutor],
-      ['Docente Guía', groupData.guia],
-      ['Docente Revisor', groupData.revisor],
+      ['Docente Tutor', getTeacherName('tutor')],
+      ['Docente Guía', getTeacherName('guia')],
+      ['Docente Revisor', getTeacherName('revisor')],
     ]
   });
 
@@ -48,16 +53,33 @@ export const generateReport = (groupData, evaluationData) => {
   doc.text('RESULTADO DE EVALUACIÓN PROYECTO DE GRADO', 14, doc.lastAutoTable.finalY + 15);
   
   const studentResultsBody = groupData.students.map((student, index) => {
-    // Aquí se calcularían las notas finales en base a evaluationData
-    // evaluationData contendría las notas promedio de los 3 docentes
-    const notaFinal = "9.50"; // Simulado
-    return [`Estudiante ${index + 1}`, student, notaFinal];
+    // Promedio Escrito
+    const evW = groupData.evaluations_written || [];
+    let sumW = 0;
+    evW.forEach(e => {
+       const sumFields = Number(e.score_introduccion) + Number(e.score_antecedentes) + Number(e.score_definicion_problema) + Number(e.score_justificacion) + Number(e.score_objetivos) + Number(e.score_marco_conceptual) + Number(e.score_marco_metodologico) + Number(e.score_resultados) + Number(e.score_analisis) + Number(e.score_conclusiones) + Number(e.score_recomendaciones) + Number(e.score_referencias) + Number(e.score_anexos) + Number(e.score_formato);
+       sumW += (sumFields / 14);
+    });
+    const avgWritten = evW.length ? (sumW / evW.length) : 0;
+
+    // Promedio Oral
+    const evO = student.evaluations_oral || [];
+    let sumO = 0;
+    evO.forEach(e => {
+       const sumFields = Number(e.score_communication) + Number(e.score_knowledge) + Number(e.score_answers) + Number(e.score_time);
+       sumO += (sumFields / 4);
+    });
+    const avgOral = evO.length ? (sumO / evO.length) : 0;
+
+    const notaFinal = ((avgWritten + avgOral) / 2).toFixed(2);
+
+    return [`Estudiante ${index + 1}`, student.full_name, avgWritten.toFixed(2), avgOral.toFixed(2), notaFinal];
   });
 
   doc.autoTable({
     startY: doc.lastAutoTable.finalY + 20,
     theme: 'grid',
-    head: [['', 'Nombre del Estudiante', 'Nota de Grado (0-10)']],
+    head: [['', 'Nombre del Estudiante', 'P. Escrito', 'P. Oral', 'Nota Final']],
     headStyles: { fillColor: primaryColor, textColor: 255 },
     body: studentResultsBody
   });
@@ -70,16 +92,16 @@ export const generateReport = (groupData, evaluationData) => {
   
   // Líneas de firma
   doc.line(20, signatureY, 80, signatureY);
-  doc.text(groupData.tutor, 50, signatureY + 5, { align: 'center' });
+  doc.text(getTeacherName('tutor'), 50, signatureY + 5, { align: 'center' });
   doc.text('Docente Tutor', 50, signatureY + 10, { align: 'center' });
 
   doc.line(130, signatureY, 190, signatureY);
-  doc.text(groupData.guia, 160, signatureY + 5, { align: 'center' });
+  doc.text(getTeacherName('guia'), 160, signatureY + 5, { align: 'center' });
   doc.text('Docente Guía', 160, signatureY + 10, { align: 'center' });
 
   const signatureY2 = signatureY + 40;
   doc.line(75, signatureY2, 135, signatureY2);
-  doc.text(groupData.revisor, 105, signatureY2 + 5, { align: 'center' });
+  doc.text(getTeacherName('revisor'), 105, signatureY2 + 5, { align: 'center' });
   doc.text('Docente Revisor', 105, signatureY2 + 10, { align: 'center' });
 
   // Guardar PDF

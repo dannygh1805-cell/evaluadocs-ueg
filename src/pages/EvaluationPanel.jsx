@@ -21,7 +21,10 @@ const EvaluationPanel = () => {
     score_conclusiones: '', score_recomendaciones: '',
     score_referencias: '', score_anexos: '', score_formato: ''
   };
-  const [writtenScores, setWrittenScores] = useState(initialWrittenScores);
+  const [writtenScores, setWrittenScores] = useState(() => {
+    const saved = localStorage.getItem(`draft_w_${groupId}_${role}`);
+    return saved ? JSON.parse(saved) : initialWrittenScores;
+  });
 
   const [oralScores, setOralScores] = useState({}); // { studentId: { communication:0, knowledge:0, answers:0, time:0 } }
   
@@ -36,12 +39,17 @@ const EvaluationPanel = () => {
       const { data: sData } = await supabase.from('students').select('*').eq('group_id', groupId);
       if (sData) {
         setStudents(sData);
-        // Initialize oral scores
-        const oScores = {};
-        sData.forEach(s => {
-          oScores[s.id] = { score_communication: '', score_knowledge: '', score_answers: '', score_time: '' };
-        });
-        setOralScores(oScores);
+        // Initialize oral scores with draft recovery
+        const savedO = localStorage.getItem(`draft_o_${groupId}_${role}`);
+        if (savedO) {
+          setOralScores(JSON.parse(savedO));
+        } else {
+          const oScores = {};
+          sData.forEach(s => {
+            oScores[s.id] = { score_communication: '', score_knowledge: '', score_answers: '', score_time: '' };
+          });
+          setOralScores(oScores);
+        }
       }
 
       // Obtener la evaluación existente del docente si ya había guardado algo
@@ -77,6 +85,25 @@ const EvaluationPanel = () => {
       return () => clearInterval(interval);
     }
   }, [groupId, role]);
+
+  // Autoguardado en local storage cada vez que cambia
+  useEffect(() => {
+    localStorage.setItem(`draft_w_${groupId}_${role}`, JSON.stringify(writtenScores));
+  }, [writtenScores, groupId, role]);
+
+  useEffect(() => {
+    localStorage.setItem(`draft_o_${groupId}_${role}`, JSON.stringify(oralScores));
+  }, [oralScores, groupId, role]);
+
+  // Manejador genérico para prevenir que se ingrese más de 10
+  const handleScoreChange = (setter, currentObj, field, val) => {
+    let numStr = val;
+    if (numStr !== '') {
+      if (Number(numStr) > 10) numStr = '10';
+      if (Number(numStr) < 0) numStr = '0';
+    }
+    setter({ ...currentObj, [field]: numStr });
+  };
 
   const validateForm = () => {
     // 1. Validar parámetros escritos
@@ -143,6 +170,9 @@ const EvaluationPanel = () => {
   const handleFinish = () => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('groupId');
+    // Limpiar borradores al terminar
+    localStorage.removeItem(`draft_w_${groupId}_${role}`);
+    localStorage.removeItem(`draft_o_${groupId}_${role}`);
     window.dispatchEvent(new Event('authChange'));
     window.location.hash = '#/login';
   };
@@ -273,9 +303,9 @@ const EvaluationPanel = () => {
               <table className="table">
                 <thead><tr><th>Criterio</th><th style={{ width: '150px' }}>Calificación (0-10)</th></tr></thead>
                 <tbody>
-                  <tr><td><strong>Referencias:</strong> Formato APA 7ma Edición.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_referencias} onChange={e => setWrittenScores({...writtenScores, score_referencias: e.target.value})} /></td></tr>
-                  <tr><td><strong>Anexos:</strong> Evidencias, fotos, herramientas aplicadas.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_anexos} onChange={e => setWrittenScores({...writtenScores, score_anexos: e.target.value})} /></td></tr>
-                  <tr><td><strong>Formato General:</strong> Márgenes, interlineado, numeración, redacción.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_formato} onChange={e => setWrittenScores({...writtenScores, score_formato: e.target.value})} /></td></tr>
+                  <tr><td><strong>Referencias:</strong> Formato APA 7ma Edición.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_referencias} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_referencias', e.target.value)} /></td></tr>
+                  <tr><td><strong>Anexos:</strong> Evidencias, fotos, herramientas aplicadas.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_anexos} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_anexos', e.target.value)} /></td></tr>
+                  <tr><td><strong>Formato General:</strong> Márgenes, interlineado, numeración, redacción.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_formato} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_formato', e.target.value)} /></td></tr>
                 </tbody>
               </table>
             </div>
@@ -293,10 +323,25 @@ const EvaluationPanel = () => {
                   {students.map(s => (
                     <tr key={s.id}>
                       <td style={{ fontWeight: 500 }}>{s.full_name}</td>
-                      <td><input type="number" min="0" max="10" step="0.1" className="form-control" value={oralScores[s.id]?.score_communication || ''} onChange={e => setOralScores({...oralScores, [s.id]: {...oralScores[s.id], score_communication: e.target.value}})} /></td>
-                      <td><input type="number" min="0" max="10" step="0.1" className="form-control" value={oralScores[s.id]?.score_knowledge || ''} onChange={e => setOralScores({...oralScores, [s.id]: {...oralScores[s.id], score_knowledge: e.target.value}})} /></td>
-                      <td><input type="number" min="0" max="10" step="0.1" className="form-control" value={oralScores[s.id]?.score_answers || ''} onChange={e => setOralScores({...oralScores, [s.id]: {...oralScores[s.id], score_answers: e.target.value}})} /></td>
-                      <td><input type="number" min="0" max="10" step="0.1" className="form-control" value={oralScores[s.id]?.score_time || ''} onChange={e => setOralScores({...oralScores, [s.id]: {...oralScores[s.id], score_time: e.target.value}})} /></td>
+                      {['score_communication', 'score_knowledge', 'score_answers', 'score_time'].map(key => (
+                        <td key={key}>
+                          <input 
+                            type="number" 
+                            min="0" max="10" step="0.1" 
+                            className="form-control" 
+                            value={oralScores[s.id]?.[key] || ''} 
+                            onChange={(e) => {
+                              const currentObj = oralScores[s.id] || {};
+                              let numStr = e.target.value;
+                              if (numStr !== '') {
+                                if (Number(numStr) > 10) numStr = '10';
+                                if (Number(numStr) < 0) numStr = '0';
+                              }
+                              setOralScores({...oralScores, [s.id]: {...currentObj, [key]: numStr}});
+                            }} 
+                          />
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
