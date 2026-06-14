@@ -11,12 +11,13 @@ function App() {
   const [groupId, setGroupId] = useState(localStorage.getItem('groupId'));
 
   useEffect(() => {
-    const handleStorageChange = () => {
+    const handleAuthChange = () => {
       setUserRole(localStorage.getItem('userRole'));
       setGroupId(localStorage.getItem('groupId'));
     };
-    const interval = setInterval(handleStorageChange, 500);
-    return () => clearInterval(interval);
+
+    window.addEventListener('authChange', handleAuthChange);
+    return () => window.removeEventListener('authChange', handleAuthChange);
   }, []);
 
   const isAuthenticated = !!userRole;

@@ -22,8 +22,8 @@ const Login = () => {
         if (upperCode === 'ADMIN-UEG') {
           localStorage.setItem('userRole', 'admin');
           localStorage.setItem('groupId', 'ALL');
-          window.location.hash = '#/admin';
-          window.location.reload();
+          window.dispatchEvent(new Event('authChange'));
+          navigate('/admin');
         } else {
           setError('Código de administrador incorrecto.');
         }
@@ -45,8 +45,8 @@ const Login = () => {
         } else {
           localStorage.setItem('userRole', role);
           localStorage.setItem('groupId', upperCode);
-          window.location.hash = `#/profile/${upperCode}`;
-          window.location.reload();
+          window.dispatchEvent(new Event('authChange'));
+          navigate(`/profile/${upperCode}`);
         }
       }
     } catch (err) {

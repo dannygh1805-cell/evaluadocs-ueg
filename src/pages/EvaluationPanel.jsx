@@ -11,6 +11,7 @@ const EvaluationPanel = () => {
   const [groupData, setGroupData] = useState(null);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [teachersCount, setTeachersCount] = useState(0);
 
   // 14 Parámetros del Proyecto Escrito
   const initialWrittenScores = {
@@ -54,10 +55,26 @@ const EvaluationPanel = () => {
         });
       }
 
+      // Check teachers initially
+      const { count } = await supabase.from('teachers_registry')
+        .select('*', { count: 'exact', head: true })
+        .eq('group_id', groupId);
+      setTeachersCount(count || 0);
+
       setLoading(false);
     };
 
-    if (groupId) fetchData();
+    if (groupId) {
+      fetchData();
+      
+      const interval = setInterval(async () => {
+        const { count } = await supabase.from('teachers_registry')
+          .select('*', { count: 'exact', head: true })
+          .eq('group_id', groupId);
+        setTeachersCount(count || 0);
+      }, 3000);
+      return () => clearInterval(interval);
+    }
   }, [groupId, role]);
 
   const handleSave = async () => {
@@ -92,6 +109,24 @@ const EvaluationPanel = () => {
   };
 
   if (loading) return <div className="p-8 text-center">Cargando rúbrica para el grupo {groupId}...</div>;
+
+  if (teachersCount < 3) {
+    return (
+      <div className="animate-fade-in flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="surface text-center p-8" style={{ maxWidth: '500px', width: '100%' }}>
+          <h2 className="h2 text-primary mb-4">Sala de Espera</h2>
+          <p className="text-muted mb-6">
+            La evaluación es en conjunto. Esperando a que el resto del tribunal ingrese al sistema...
+          </p>
+          <div className="badge badge-warning mb-4 flex justify-center" style={{ fontSize: '1.2rem', padding: '1rem', width: '100%' }}>
+            Docentes Listos: {teachersCount} / 3
+          </div>
+          <div className="spinner mt-4" style={{ margin: '0 auto', border: '4px solid var(--border-light)', borderTop: '4px solid var(--primary-color)', borderRadius: '50%', width: '40px', height: '40px', animation: 'spin 1s linear infinite' }}></div>
+          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in">
