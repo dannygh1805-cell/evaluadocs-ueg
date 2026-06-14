@@ -2,11 +2,12 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, BookOpen } from 'lucide-react';
 
-const Navbar = ({ userRole }) => {
+const Navbar = ({ userRole, groupId }) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // TODO: Implementar logout en Supabase
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('groupId');
     navigate('/login');
   };
 
@@ -29,6 +30,9 @@ const Navbar = ({ userRole }) => {
         </div>
         
         <div className="flex items-center gap-4">
+          {userRole !== 'admin' && groupId && (
+            <span className="badge badge-warning">Grupo: {groupId}</span>
+          )}
           <span className="badge badge-success">{getRoleLabel()}</span>
           <button onClick={handleLogout} className="btn btn-secondary btn-icon" title="Cerrar Sesión">
             <LogOut size={18} />

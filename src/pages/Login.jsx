@@ -1,55 +1,52 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
-import { Lock, Mail } from 'lucide-react';
+import { Key, UserCircle } from 'lucide-react';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [role, setRole] = useState('tutor');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handleAccess = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
-    // Simulación temporal mientras no tengamos base de datos con usuarios
-    setTimeout(() => {
-      setLoading(false);
-      // Redirigimos por defecto a admin para probar (luego esto se adaptará con JWT de supabase)
-      navigate('/admin');
-    }, 1000);
 
-    /* Lógica real (descomentar cuando haya datos):
+    const upperCode = code.trim().toUpperCase();
+
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-      
-      // Obtener el rol del usuario desde la tabla public.users
-      const { data: userData } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
-        
-      if (userData?.role === 'admin') {
-        navigate('/admin');
+      if (role === 'admin') {
+        if (upperCode === 'ADMIN-UEG') {
+          localStorage.setItem('userRole', 'admin');
+          localStorage.setItem('groupId', 'ALL');
+          navigate('/admin');
+        } else {
+          setError('Código de administrador incorrecto.');
+        }
       } else {
-        // Redirigir a la vista de sus grupos asignados
-        navigate('/evaluate/groups');
+        // Verificar si el grupo existe en la base de datos
+        const { data, error: fetchError } = await supabase
+          .from('groups')
+          .select('id')
+          .eq('id', upperCode)
+          .single();
+
+        if (fetchError || !data) {
+          setError('El código de grupo no existe. Verifica e intenta de nuevo (ej. G-A1).');
+        } else {
+          localStorage.setItem('userRole', role);
+          localStorage.setItem('groupId', upperCode);
+          navigate(`/evaluate/${upperCode}`);
+        }
       }
     } catch (err) {
-      setError(err.message);
+      setError('Ocurrió un error al verificar el acceso.');
     } finally {
       setLoading(false);
     }
-    */
   };
 
   return (
@@ -57,45 +54,47 @@ const Login = () => {
       <div className="surface animate-fade-in" style={{ width: '100%', maxWidth: '400px' }}>
         <div className="text-center mb-8">
           <h1 className="h2 text-primary">EvaluaDocs</h1>
-          <p className="text-muted">Sistema de Calificación de Defensas de Grado</p>
+          <p className="text-muted">Acceso Rápido para Docentes</p>
         </div>
 
         {error && (
           <div className="form-group">
-            <div className="badge badge-danger w-full justify-center py-2" style={{ width: '100%' }}>
+            <div className="badge badge-danger w-full justify-center py-2 text-center" style={{ width: '100%', display: 'block' }}>
               {error}
             </div>
           </div>
         )}
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleAccess}>
           <div className="form-group">
-            <label className="form-label">Correo Institucional</label>
+            <label className="form-label">Rol del Docente</label>
             <div style={{ position: 'relative' }}>
-              <Mail size={18} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--text-muted)' }} />
-              <input 
-                type="email" 
+              <UserCircle size={18} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--text-muted)' }} />
+              <select 
                 className="form-control" 
-                style={{ paddingLeft: '2.5rem' }}
-                placeholder="docente@educacion.gob.ec"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+                style={{ paddingLeft: '2.5rem', cursor: 'pointer' }}
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+              >
+                <option value="tutor">Docente Tutor</option>
+                <option value="guia">Docente Guía</option>
+                <option value="revisor">Docente Revisor</option>
+                <option value="admin">Administrador</option>
+              </select>
             </div>
           </div>
 
           <div className="form-group mb-8">
-            <label className="form-label">Contraseña</label>
+            <label className="form-label">Código de Acceso</label>
             <div style={{ position: 'relative' }}>
-              <Lock size={18} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--text-muted)' }} />
+              <Key size={18} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--text-muted)' }} />
               <input 
-                type="password" 
+                type="text" 
                 className="form-control" 
-                style={{ paddingLeft: '2.5rem' }}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                style={{ paddingLeft: '2.5rem', textTransform: 'uppercase' }}
+                placeholder={role === 'admin' ? "Clave secreta" : "Ej. G-A1"}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
                 required
               />
             </div>
@@ -107,7 +106,7 @@ const Login = () => {
             style={{ width: '100%' }}
             disabled={loading}
           >
-            {loading ? 'Ingresando...' : 'Iniciar Sesión'}
+            {loading ? 'Verificando...' : 'Ingresar a Calificar'}
           </button>
         </form>
       </div>
