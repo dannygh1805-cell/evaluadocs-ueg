@@ -21,10 +21,8 @@ const AdminDashboard = () => {
       .from('groups')
       .select(`
         *,
-        students(id, full_name),
-        evaluations_written(status, evaluator_role),
-        evaluations_oral(status, evaluator_role, student_id),
-        evaluations_practical(status, evaluator_role, student_id, final_score)
+        students(id, full_name, evaluations_oral(status, evaluator_role), evaluations_practical(status, evaluator_role, final_score)),
+        evaluations_written(status, evaluator_role)
       `)
       .order('id');
       
@@ -34,8 +32,10 @@ const AdminDashboard = () => {
       // Precargar calificaciones prácticas existentes
       const pScores = {};
       groupsData.forEach(g => {
-        g.evaluations_practical?.forEach(ep => {
-          pScores[ep.student_id] = ep.final_score;
+        g.students?.forEach(s => {
+          s.evaluations_practical?.forEach(ep => {
+            pScores[s.id] = ep.final_score;
+          });
         });
       });
       setPracticalScores(pScores);
