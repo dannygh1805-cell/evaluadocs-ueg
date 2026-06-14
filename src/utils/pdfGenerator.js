@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export const generateReport = (groupData, evaluationData) => {
   const doc = new jsPDF();
@@ -19,7 +19,7 @@ export const generateReport = (groupData, evaluationData) => {
   doc.text('Informe de Calificación de Estudio de Caso', 105, 28, { align: 'center' });
   
   // Datos Informativos Básicos
-  doc.autoTable({
+  autoTable(doc, {
     startY: 35,
     theme: 'grid',
     headStyles: { fillColor: primaryColor, textColor: 255 },
@@ -36,7 +36,7 @@ export const generateReport = (groupData, evaluationData) => {
   };
 
   // Comisión Calificadora
-  doc.autoTable({
+  autoTable(doc, {
     startY: doc.lastAutoTable.finalY + 10,
     theme: 'grid',
     head: [['Cargo', 'Nombre']],
@@ -76,7 +76,7 @@ export const generateReport = (groupData, evaluationData) => {
     return [`Estudiante ${index + 1}`, student.full_name, avgWritten.toFixed(2), avgOral.toFixed(2), notaFinal];
   });
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: doc.lastAutoTable.finalY + 20,
     theme: 'grid',
     head: [['', 'Nombre del Estudiante', 'P. Escrito', 'P. Oral', 'Nota Final']],
