@@ -21,6 +21,7 @@ const AdminDashboard = () => {
       .from('groups')
       .select(`
         *,
+        teachers_registry(role),
         students(id, full_name, evaluations_oral(status, evaluator_role), evaluations_practical(status, evaluator_role, final_score)),
         evaluations_written(status, evaluator_role)
       `)
@@ -122,6 +123,23 @@ const AdminDashboard = () => {
     }
   };
 
+  const getTeacherStatus = (group, roleName) => {
+    const roleMap = { 'Tutor': 'tutor', 'Guía': 'guia', 'Revisor': 'revisor' };
+    const dbRole = roleMap[roleName];
+    
+    const ev = group.evaluations_written?.find(e => e.evaluator_role === dbRole);
+    if (ev?.status === 'completed') return <span className="text-success" style={{ fontSize: '0.85rem', display: 'block' }}>✅ {roleName} finalizó</span>;
+    
+    const inWaiting = group.teachers_registry?.find(t => t.role === dbRole);
+    if (inWaiting) return <span className="text-warning" style={{ fontSize: '0.85rem', display: 'block' }}>⏳ {roleName} evaluando...</span>;
+    
+    return <span className="text-muted" style={{ fontSize: '0.85rem', display: 'block' }}>❌ {roleName} inactivo</span>;
+  };
+
+  const isGroupFullyCompleted = (group) => {
+    return group.evaluations_written?.filter(e => e.status === 'completed').length === 3;
+  };
+
   if (loading) return <div className="p-8 text-center">Cargando panel de administración...</div>;
 
   return (
@@ -181,9 +199,21 @@ const AdminDashboard = () => {
                       )}
                     </td>
                     <td>
-                      {group.evaluation_status === 'completed' ? <span className="badge badge-success"><CheckCircle size={12} /> Completado</span> : 
-                       group.evaluation_status === 'in_progress' ? <span className="badge badge-warning"><PlayCircle size={12} /> En Progreso</span> :
-                       <span className="badge badge-secondary"><Clock size={12} /> Pendiente</span>}
+                      {group.evaluation_status === 'pending' ? (
+                        <span className="badge badge-secondary"><Clock size={12} /> Pendiente</span>
+                      ) : isGroupFullyCompleted(group) ? (
+                        <span className="badge badge-success"><CheckCircle size={12} /> Completado</span>
+                      ) : (
+                        <span className="badge badge-warning"><PlayCircle size={12} /> En Progreso</span>
+                      )}
+                      
+                      {group.evaluation_status !== 'pending' && !isGroupFullyCompleted(group) && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded" style={{ border: '1px solid var(--border-light)' }}>
+                          {getTeacherStatus(group, 'Tutor')}
+                          {getTeacherStatus(group, 'Guía')}
+                          {getTeacherStatus(group, 'Revisor')}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <div className="flex flex-col gap-2">
@@ -197,7 +227,14 @@ const AdminDashboard = () => {
                             Reiniciar Evaluación
                           </button>
                         )}
-                        <button className="btn btn-secondary" onClick={() => generateReport(group, {})}>Descargar Informe</button>
+                        <button 
+                          className="btn btn-secondary" 
+                          disabled={!isGroupFullyCompleted(group)}
+                          title={!isGroupFullyCompleted(group) ? "Debe estar completado por los 3 docentes" : ""}
+                          onClick={() => generateReport(group, {})}
+                        >
+                          Descargar Informe
+                        </button>
                       </div>
                     </td>
                   </tr>

@@ -12,6 +12,7 @@ const EvaluationPanel = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [teachersCount, setTeachersCount] = useState(0);
+  const [view, setView] = useState('evaluation'); // 'evaluation' | 'summary'
 
   // 14 Parámetros del Proyecto Escrito
   const initialWrittenScores = {
@@ -78,7 +79,7 @@ const EvaluationPanel = () => {
   }, [groupId, role]);
 
   const handleSave = async () => {
-    if (!window.confirm("¿Está seguro que desea guardar estas calificaciones?")) return;
+    if (!window.confirm("¿Está seguro que desea FINALIZAR y enviar estas calificaciones? No podrá modificarlas después.")) return;
 
     try {
       if (activeTab === 'escrito') {
@@ -89,7 +90,6 @@ const EvaluationPanel = () => {
           status: 'completed',
           updated_at: new Date()
         }, { onConflict: 'group_id, evaluator_role' });
-        alert("Rúbrica escrita guardada exitosamente.");
       } else if (activeTab === 'oral') {
         const oralPromises = students.map(s => {
           return supabase.from('evaluations_oral').upsert({
@@ -101,11 +101,24 @@ const EvaluationPanel = () => {
           }, { onConflict: 'student_id, evaluator_role' });
         });
         await Promise.all(oralPromises);
-        alert("Rúbrica de defensa oral guardada exitosamente.");
       }
+      setView('summary');
     } catch (error) {
-      alert("Error al guardar calificaciones: " + error.message);
+      alert("Error al enviar calificaciones: " + error.message);
     }
+  };
+
+  const calculateWrittenTotal = () => {
+    const scores = Object.values(writtenScores).map(Number);
+    const sum = scores.reduce((a, b) => a + b, 0);
+    return (sum / 14).toFixed(2);
+  };
+
+  const handleFinish = () => {
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('groupId');
+    window.dispatchEvent(new Event('authChange'));
+    window.location.hash = '#/login';
   };
 
   if (loading) return <div className="p-8 text-center">Cargando rúbrica para el grupo {groupId}...</div>;
@@ -123,6 +136,50 @@ const EvaluationPanel = () => {
           </div>
           <div className="spinner mt-4" style={{ margin: '0 auto', border: '4px solid var(--border-light)', borderTop: '4px solid var(--primary-color)', borderRadius: '50%', width: '40px', height: '40px', animation: 'spin 1s linear infinite' }}></div>
           <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'summary') {
+    return (
+      <div className="animate-fade-in flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="surface text-center p-8" style={{ maxWidth: '600px', width: '100%' }}>
+          <div className="flex justify-center mb-4 text-success">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          </div>
+          <h2 className="h2 text-primary mb-2">¡Evaluación Enviada con Éxito!</h2>
+          <p className="text-muted mb-6">Tus calificaciones para el Grupo {groupId} han sido registradas en el sistema.</p>
+          
+          <div className="surface bg-gray-50 mb-8 p-6 text-left" style={{ border: '1px solid var(--border-light)', borderRadius: '8px' }}>
+            <h3 className="h4 mb-4 text-primary">Resumen de tu Evaluación</h3>
+            <div className="flex justify-between items-center mb-2" style={{ fontSize: '1.1rem' }}>
+              <span className="text-muted">Promedio Proyecto Escrito:</span>
+              <strong>{calculateWrittenTotal()} / 10.00</strong>
+            </div>
+            <div className="text-muted" style={{ fontSize: '0.9rem' }}>
+              (Suma de 14 parámetros ponderada)
+            </div>
+            
+            <hr style={{ margin: '1rem 0', borderColor: 'var(--border-light)' }} />
+            
+            <h4 className="font-medium mb-2 text-muted">Defensa Oral (Promedios Individuales):</h4>
+            {students.map(s => {
+              const oScore = oralScores[s.id] || {};
+              const sum = (Number(oScore.score_communication || 0) + Number(oScore.score_knowledge || 0) + Number(oScore.score_answers || 0) + Number(oScore.score_time || 0));
+              const avg = (sum / 4).toFixed(2);
+              return (
+                <div key={s.id} className="flex justify-between items-center mb-1 text-sm">
+                  <span>{s.full_name}</span>
+                  <strong>{avg} / 10.00</strong>
+                </div>
+              );
+            })}
+          </div>
+
+          <button className="btn btn-primary" style={{ width: '100%', fontSize: '1.1rem', padding: '1rem' }} onClick={handleFinish}>
+            Aceptar y Salir
+          </button>
         </div>
       </div>
     );
@@ -224,7 +281,7 @@ const EvaluationPanel = () => {
         
         <div className="mt-8 flex justify-end">
           <button className="btn btn-success" onClick={handleSave} style={{ padding: '0.75rem 2rem', fontSize: '1.1rem' }}>
-            <Save size={20} className="mr-2" /> Guardar Calificaciones
+            <Save size={20} className="mr-2" /> Finalizar y Enviar Evaluación
           </button>
         </div>
       </div>
