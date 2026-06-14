@@ -16,10 +16,10 @@ const EvaluationPanel = () => {
 
   // 14 Parámetros del Proyecto Escrito
   const initialWrittenScores = {
-    score_introduccion: 0, score_antecedentes: 0, score_definicion_problema: 0, score_justificacion: 0, score_objetivos: 0,
-    score_marco_conceptual: 0, score_marco_metodologico: 0, score_resultados: 0, score_analisis: 0,
-    score_conclusiones: 0, score_recomendaciones: 0,
-    score_referencias: 0, score_anexos: 0, score_formato: 0
+    score_introduccion: '', score_antecedentes: '', score_definicion_problema: '', score_justificacion: '', score_objetivos: '',
+    score_marco_conceptual: '', score_marco_metodologico: '', score_resultados: '', score_analisis: '',
+    score_conclusiones: '', score_recomendaciones: '',
+    score_referencias: '', score_anexos: '', score_formato: ''
   };
   const [writtenScores, setWrittenScores] = useState(initialWrittenScores);
 
@@ -39,7 +39,7 @@ const EvaluationPanel = () => {
         // Initialize oral scores
         const oScores = {};
         sData.forEach(s => {
-          oScores[s.id] = { score_communication: 0, score_knowledge: 0, score_answers: 0, score_time: 0 };
+          oScores[s.id] = { score_communication: '', score_knowledge: '', score_answers: '', score_time: '' };
         });
         setOralScores(oScores);
       }
@@ -78,7 +78,32 @@ const EvaluationPanel = () => {
     }
   }, [groupId, role]);
 
+  const validateForm = () => {
+    // 1. Validar parámetros escritos
+    const wValues = Object.values(writtenScores);
+    if (wValues.some(v => v === '' || v === null || Number(v) < 0 || Number(v) > 10)) {
+      alert("⚠️ Acción denegada: Debe calificar TODOS los 14 parámetros del Proyecto Escrito con valores entre 0 y 10 antes de enviar.");
+      return false;
+    }
+
+    // 2. Validar parámetros orales
+    for (const student of students) {
+      const oScore = oralScores[student.id];
+      if (!oScore) {
+        alert(`⚠️ Acción denegada: Falta evaluar la Defensa Oral de ${student.full_name}.`);
+        return false;
+      }
+      const oVals = [oScore.score_communication, oScore.score_knowledge, oScore.score_answers, oScore.score_time];
+      if (oVals.some(v => v === '' || v === null || Number(v) < 0 || Number(v) > 10)) {
+        alert(`⚠️ Acción denegada: Debe completar todas las calificaciones de Defensa Oral para ${student.full_name} con valores entre 0 y 10.`);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSave = async () => {
+    if (!validateForm()) return;
     if (!window.confirm("¿Está seguro que desea FINALIZAR y enviar estas calificaciones? No podrá modificarlas después.")) return;
 
     try {
