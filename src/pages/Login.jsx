@@ -51,6 +51,8 @@ const Login = () => {
             group_id: upperCode,
             role: role,
             full_name: `Docente ${role}`,
+            cedula: 'N/A',
+            cellphone: 'N/A',
             created_at: new Date()
           }, { onConflict: 'group_id, role' });
 
