@@ -78,6 +78,30 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleResetEvaluation = async (groupId) => {
+    if(!window.confirm("¿Estás seguro de reiniciar esta evaluación? Esto borrará la sala de espera y las calificaciones actuales para este grupo.")) return;
+
+    try {
+      // 1. Borrar docentes de la sala de espera
+      await supabase.from('teachers_registry').delete().eq('group_id', groupId);
+      // 2. Borrar calificaciones escritas
+      await supabase.from('evaluations_written').delete().eq('group_id', groupId);
+      // 3. Borrar calificaciones orales
+      const { data: groupStudents } = await supabase.from('students').select('id').eq('group_id', groupId);
+      if (groupStudents && groupStudents.length > 0) {
+        const studentIds = groupStudents.map(s => s.id);
+        await supabase.from('evaluations_oral').delete().in('student_id', studentIds);
+      }
+      // 4. Resetear estado a pendiente
+      await supabase.from('groups').update({ evaluation_status: 'pending' }).eq('id', groupId);
+      
+      alert("Evaluación reiniciada con éxito.");
+      fetchGroups();
+    } catch (error) {
+      alert("Error al reiniciar evaluación: " + error.message);
+    }
+  };
+
   const handleSavePracticalScores = async (groupId, students) => {
     const promises = students.map(s => {
       const score = practicalScores[s.id] || 0;
@@ -166,6 +190,11 @@ const AdminDashboard = () => {
                         {group.evaluation_status === 'pending' && configuringGroupId !== group.id && (
                           <button className="btn btn-primary" onClick={() => handleStartConfig(group)}>
                             <PlayCircle size={16} /> Habilitar Docentes
+                          </button>
+                        )}
+                        {group.evaluation_status !== 'pending' && (
+                          <button className="btn btn-danger" onClick={() => handleResetEvaluation(group.id)}>
+                            Reiniciar Evaluación
                           </button>
                         )}
                         <button className="btn btn-secondary" onClick={() => generateReport(group, {})}>Descargar Informe</button>
