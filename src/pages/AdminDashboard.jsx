@@ -249,17 +249,17 @@ const AdminDashboard = () => {
                   g.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   g.students?.some(s => s.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
                 ).map((group) => (
-                  <tr key={group.id} onDoubleClick={() => isGroupFullyCompleted(group) && setSummaryGroup(group)} className={isGroupFullyCompleted(group) ? "cursor-pointer hover:bg-gray-50" : ""}>
+                  <tr key={group.id} onDoubleClick={() => isGroupFullyCompleted(group) && setSummaryGroup(group)} style={{ cursor: isGroupFullyCompleted(group) ? 'pointer' : 'default' }}>
                     <td style={{ maxWidth: '300px' }}>
                       <span className="badge badge-primary mb-2">{group.id} ({group.course})</span>
-                      <div className="text-muted mb-2" style={{ fontSize: '0.75rem', fontWeight: 500, backgroundColor: '#f8fafc', padding: '6px', borderRadius: '4px', borderLeft: '2px solid #38bdf8' }}>
-                        <div className="mb-1">Tutor: {group.tutor_name || 'N/A'}</div>
-                        <div className="mb-1">Guía: {group.guia_name || 'N/A'}</div>
-                        <div>Revisor: {group.revisor_name || 'N/A'}</div>
+                      <div className="mb-3 p-3 rounded border-l-4" style={{ fontSize: '0.8rem', backgroundColor: 'var(--bg-surface-hover)', borderColor: 'var(--color-primary)' }}>
+                        <div className="mb-1 flex items-center"><strong className="text-primary" style={{width: '65px'}}>Tutor:</strong> <span style={{fontWeight: 500}}>{group.tutor_name || 'N/A'}</span></div>
+                        <div className="mb-1 flex items-center"><strong className="text-primary" style={{width: '65px'}}>Guía:</strong> <span style={{fontWeight: 500}}>{group.guia_name || 'N/A'}</span></div>
+                        <div className="flex items-center"><strong className="text-primary" style={{width: '65px'}}>Revisor:</strong> <span style={{fontWeight: 500}}>{group.revisor_name || 'N/A'}</span></div>
                       </div>
-                      <div className="text-muted mt-2">
+                      <div className="mt-2">
                         {group.students?.map(s => (
-                          <div key={s.id} className="flex items-center justify-between gap-2 mb-1 p-1 hover:bg-gray-100 rounded" style={{fontSize: '0.85rem'}}>
+                          <div key={s.id} className="flex items-center justify-between gap-2 mb-2 p-2 rounded transition-colors" style={{fontSize: '0.85rem', backgroundColor: 'var(--bg-surface-hover)', border: '1px solid var(--border-light)'}}>
                             {editingStudentId === s.id ? (
                               <div className="flex gap-1 w-full">
                                 <input type="text" className="form-control p-1 text-sm h-8" value={editingStudentName} onChange={e => setEditingStudentName(e.target.value)} autoFocus />
@@ -278,14 +278,14 @@ const AdminDashboard = () => {
                           </div>
                         ))}
                         {addingToGroupId === group.id ? (
-                          <div className="flex gap-1 mt-2">
-                            <input type="text" className="form-control p-1 text-sm h-8" placeholder="Nombres Completos..." value={newStudentName} onChange={e => setNewStudentName(e.target.value)} autoFocus />
-                            <button className="btn btn-success p-1 h-8" onClick={() => handleAddStudent(group.id)}><Plus size={14}/></button>
-                            <button className="btn btn-secondary p-1 h-8" onClick={() => {setAddingToGroupId(null); setNewStudentName('');}}><X size={14}/></button>
+                          <div className="flex gap-2 mt-3 p-2 rounded" style={{ backgroundColor: 'var(--bg-surface-hover)', border: '1px solid var(--border-focus)' }}>
+                            <input type="text" className="form-control p-1 text-sm h-8 w-full" placeholder="Nombres Completos..." value={newStudentName} onChange={e => setNewStudentName(e.target.value)} autoFocus />
+                            <button className="btn btn-success p-1 h-8" onClick={() => handleAddStudent(group.id)} title="Guardar"><CheckCircle size={16}/></button>
+                            <button className="btn btn-secondary p-1 h-8" onClick={() => {setAddingToGroupId(null); setNewStudentName('');}} title="Cancelar"><X size={16}/></button>
                           </div>
                         ) : (
-                          <button className="text-primary mt-2 text-sm flex items-center gap-1 hover:underline" onClick={() => setAddingToGroupId(group.id)}>
-                            <Plus size={14}/> Agregar Estudiante
+                          <button className="btn mt-2 w-full text-sm flex items-center justify-center gap-2" style={{ backgroundColor: 'transparent', border: '1px dashed var(--color-primary)', color: 'var(--color-primary)', padding: '0.4rem' }} onClick={() => setAddingToGroupId(group.id)}>
+                            <Plus size={16}/> Añadir Estudiante
                           </button>
                         )}
                       </div>
