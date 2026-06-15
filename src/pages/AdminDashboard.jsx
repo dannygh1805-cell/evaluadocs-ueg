@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, CheckCircle, Clock, PlayCircle, Link as LinkIcon, BookOpen, PenTool } from 'lucide-react';
+import { Users, CheckCircle, Clock, PlayCircle, Link as LinkIcon, BookOpen, PenTool, Trash2, Edit2, Plus, X, Eye } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { generateReport } from '../utils/pdfGenerator';
 
@@ -12,6 +12,15 @@ const AdminDashboard = () => {
   // Estado para la configuración de un grupo antes de iniciar
   const [configuringGroupId, setConfiguringGroupId] = useState(null);
   const [configData, setConfigData] = useState({ theme: '', plagiarism_percentage: 0, ai_percentage: 0 });
+
+  // Estados para CRUD de Estudiantes
+  const [editingStudentId, setEditingStudentId] = useState(null);
+  const [editingStudentName, setEditingStudentName] = useState('');
+  const [addingToGroupId, setAddingToGroupId] = useState(null);
+  const [newStudentName, setNewStudentName] = useState('');
+  
+  // Estado para modal de resumen
+  const [summaryGroup, setSummaryGroup] = useState(null);
 
   // Estado para las calificaciones prácticas
   const [practicalScores, setPracticalScores] = useState({}); // { studentId: score }
@@ -124,6 +133,48 @@ const AdminDashboard = () => {
     }
   };
 
+  // Funciones CRUD Estudiantes
+  const handleDeleteStudent = async (studentId, studentName) => {
+    if(!window.confirm(`¿Seguro que deseas eliminar a ${studentName}? Las notas asociadas se borrarán.`)) return;
+    try {
+      await supabase.from('evaluations_oral').delete().eq('student_id', studentId);
+      await supabase.from('evaluations_practical').delete().eq('student_id', studentId);
+      await supabase.from('students').delete().eq('id', studentId);
+      fetchGroups();
+    } catch(e) { alert("Error eliminando: " + e.message); }
+  };
+
+  const handleUpdateStudent = async (studentId) => {
+    if(!editingStudentName.trim()) return;
+    try {
+      await supabase.from('students').update({ full_name: editingStudentName }).eq('id', studentId);
+      setEditingStudentId(null);
+      fetchGroups();
+    } catch(e) { alert("Error editando: " + e.message); }
+  };
+
+  const handleAddStudent = async (groupId) => {
+    if(!newStudentName.trim()) return;
+    try {
+      await supabase.from('students').insert({ group_id: groupId, full_name: newStudentName });
+      setAddingToGroupId(null);
+      setNewStudentName('');
+      fetchGroups();
+    } catch(e) { alert("Error añadiendo: " + e.message); }
+  };
+
+  const calculateWrittenAvg = (evaluation) => {
+    if(!evaluation) return 0;
+    const scores = [
+      evaluation.score_introduccion, evaluation.score_antecedentes, evaluation.score_definicion_problema,
+      evaluation.score_justificacion, evaluation.score_objetivos, evaluation.score_marco_conceptual,
+      evaluation.score_marco_metodologico, evaluation.score_resultados, evaluation.score_analisis,
+      evaluation.score_conclusiones, evaluation.score_recomendaciones, evaluation.score_referencias,
+      evaluation.score_anexos, evaluation.score_formato
+    ];
+    return (scores.reduce((a,b) => a + Number(b||0), 0) / 14).toFixed(2);
+  };
+
   const getTeacherStatus = (group, roleName) => {
     const roleMap = { 'Tutor': 'tutor', 'Guía': 'guia', 'Revisor': 'revisor' };
     const dbRole = roleMap[roleName];
@@ -188,11 +239,40 @@ const AdminDashboard = () => {
                   g.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   g.students?.some(s => s.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
                 ).map((group) => (
-                  <tr key={group.id}>
-                    <td style={{ maxWidth: '250px' }}>
+                  <tr key={group.id} onDoubleClick={() => isGroupFullyCompleted(group) && setSummaryGroup(group)} className={isGroupFullyCompleted(group) ? "cursor-pointer hover:bg-gray-50" : ""}>
+                    <td style={{ maxWidth: '300px' }}>
                       <span className="badge badge-primary mb-2">{group.id} ({group.course})</span>
-                      <div className="text-muted" style={{ fontSize: '0.8rem' }}>
-                        {group.students?.map(s => s.full_name).join(', ')}
+                      <div className="text-muted mt-2">
+                        {group.students?.map(s => (
+                          <div key={s.id} className="flex items-center justify-between gap-2 mb-1 p-1 hover:bg-gray-100 rounded" style={{fontSize: '0.85rem'}}>
+                            {editingStudentId === s.id ? (
+                              <div className="flex gap-1 w-full">
+                                <input type="text" className="form-control p-1 text-sm h-8" value={editingStudentName} onChange={e => setEditingStudentName(e.target.value)} autoFocus />
+                                <button className="btn btn-success p-1 h-8" onClick={() => handleUpdateStudent(s.id)}><CheckCircle size={14}/></button>
+                                <button className="btn btn-secondary p-1 h-8" onClick={() => setEditingStudentId(null)}><X size={14}/></button>
+                              </div>
+                            ) : (
+                              <>
+                                <span>{s.full_name}</span>
+                                <div className="flex gap-1">
+                                  <button className="text-primary hover:text-blue-700" onClick={() => { setEditingStudentId(s.id); setEditingStudentName(s.full_name); }} title="Editar Nombre"><Edit2 size={14}/></button>
+                                  <button className="text-danger hover:text-red-700" onClick={() => handleDeleteStudent(s.id, s.full_name)} title="Eliminar Estudiante"><Trash2 size={14}/></button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                        {addingToGroupId === group.id ? (
+                          <div className="flex gap-1 mt-2">
+                            <input type="text" className="form-control p-1 text-sm h-8" placeholder="Nombres Completos..." value={newStudentName} onChange={e => setNewStudentName(e.target.value)} autoFocus />
+                            <button className="btn btn-success p-1 h-8" onClick={() => handleAddStudent(group.id)}><Plus size={14}/></button>
+                            <button className="btn btn-secondary p-1 h-8" onClick={() => {setAddingToGroupId(null); setNewStudentName('');}}><X size={14}/></button>
+                          </div>
+                        ) : (
+                          <button className="text-primary mt-2 text-sm flex items-center gap-1 hover:underline" onClick={() => setAddingToGroupId(group.id)}>
+                            <Plus size={14}/> Agregar Estudiante
+                          </button>
+                        )}
                       </div>
                     </td>
                     <td>
@@ -250,6 +330,11 @@ const AdminDashboard = () => {
                         >
                           Descargar Informe
                         </button>
+                        {isGroupFullyCompleted(group) && (
+                          <button className="btn btn-primary" style={{backgroundColor: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd'}} onClick={() => setSummaryGroup(group)}>
+                            <Eye size={16} className="mr-1 inline"/> Ver Resumen
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -293,6 +378,85 @@ const AdminDashboard = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Resumen */}
+      {summaryGroup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="surface p-6 overflow-y-auto max-h-[90vh]" style={{ width: '100%', maxWidth: '800px' }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="h2 text-primary">Resumen General: Grupo {summaryGroup.id}</h2>
+              <button onClick={() => setSummaryGroup(null)} className="btn btn-secondary p-2"><X size={20}/></button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="p-4 bg-gray-50 rounded border border-gray-200">
+                <h3 className="font-bold text-lg mb-4 text-primary">Promedio Proyecto Escrito</h3>
+                <div className="space-y-2 text-sm">
+                  {['tutor', 'guia', 'revisor'].map(role => {
+                    const ev = summaryGroup.evaluations_written?.find(e => e.evaluator_role === role);
+                    const avg = ev ? calculateWrittenAvg(ev) : '0.00';
+                    return <div key={role} className="flex justify-between border-b pb-1"><span>{role.charAt(0).toUpperCase() + role.slice(1)}:</span> <strong>{avg} / 10.00</strong></div>;
+                  })}
+                </div>
+                <div className="flex justify-between text-success font-bold mt-4 text-lg">
+                  <span>General Escrito:</span> 
+                  <span>{
+                    (
+                      ['tutor', 'guia', 'revisor'].reduce((acc, role) => {
+                        const ev = summaryGroup.evaluations_written?.find(e => e.evaluator_role === role);
+                        return acc + Number(ev ? calculateWrittenAvg(ev) : 0);
+                      }, 0) / 3
+                    ).toFixed(2)
+                  } / 10.00</span>
+                </div>
+              </div>
+            </div>
+
+            <h3 className="font-bold text-lg mb-2 text-primary">Promedios Individuales de Defensa Oral</h3>
+            <div className="table-container">
+              <table className="table mb-0">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th>Estudiante</th>
+                    <th>Detalle de Tribunal (T / G / R)</th>
+                    <th>Promedio Defensa Oral</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summaryGroup.students?.map(student => {
+                    const oralEvs = student.evaluations_oral || [];
+                    const getOralForRole = (role) => {
+                      const o = oralEvs.find(e => e.evaluator_role === role);
+                      if(!o) return 0;
+                      return (Number(o.score_communication||0) + Number(o.score_knowledge||0) + Number(o.score_answers||0) + Number(o.score_time||0))/4;
+                    };
+                    const tO = getOralForRole('tutor');
+                    const gO = getOralForRole('guia');
+                    const rO = getOralForRole('revisor');
+                    const avgOral = ((tO + gO + rO)/3).toFixed(2);
+                    
+                    return (
+                      <tr key={student.id}>
+                        <td className="font-medium">{student.full_name}</td>
+                        <td className="text-muted" style={{fontSize:'0.85rem'}}>
+                          Tutor: {tO.toFixed(2)} | Guía: {gO.toFixed(2)} | Rev: {rO.toFixed(2)}
+                        </td>
+                        <td className="text-success font-bold">
+                          {avgOral} / 10.00
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="mt-6 text-right">
+              <button className="btn btn-primary" onClick={() => setSummaryGroup(null)}>Cerrar Resumen</button>
+            </div>
           </div>
         </div>
       )}
