@@ -13,6 +13,10 @@ const EvaluationPanel = () => {
   const [loading, setLoading] = useState(true);
   const [teachersCount, setTeachersCount] = useState(0);
   const [view, setView] = useState('evaluation'); // 'evaluation' | 'summary'
+  
+  const [fillValue, setFillValue] = useState('');
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   // 14 Parámetros del Proyecto Escrito
   const initialWrittenScores = {
@@ -95,7 +99,6 @@ const EvaluationPanel = () => {
     localStorage.setItem(`draft_o_${groupId}_${role}`, JSON.stringify(oralScores));
   }, [oralScores, groupId, role]);
 
-  // Manejador genérico para prevenir que se ingrese más de 10
   const handleScoreChange = (setter, currentObj, field, val) => {
     let numStr = val;
     if (numStr !== '') {
@@ -103,6 +106,44 @@ const EvaluationPanel = () => {
       if (Number(numStr) < 0) numStr = '0';
     }
     setter({ ...currentObj, [field]: numStr });
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const inputs = Array.from(document.querySelectorAll('input[type="number"]'));
+      const index = inputs.indexOf(e.target);
+      if (index > -1 && index < inputs.length - 1) inputs[index + 1].focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const inputs = Array.from(document.querySelectorAll('input[type="number"]'));
+      const index = inputs.indexOf(e.target);
+      if (index > 0) inputs[index - 1].focus();
+    }
+  };
+
+  const fillEmptyScores = () => {
+    if (fillValue === '' || Number(fillValue) < 0 || Number(fillValue) > 10) {
+      alert("Por favor ingrese una nota válida (0-10) en la casilla de Autorelleno.");
+      return;
+    }
+    
+    if (activeTab === 'escrito') {
+      const newScores = { ...writtenScores };
+      Object.keys(newScores).forEach(k => {
+        if (newScores[k] === '') newScores[k] = fillValue;
+      });
+      setWrittenScores(newScores);
+    } else {
+      const newOral = { ...oralScores };
+      students.forEach(s => {
+        if (!newOral[s.id]) newOral[s.id] = { score_communication: '', score_knowledge: '', score_answers: '', score_time: '' };
+        ['score_communication', 'score_knowledge', 'score_answers', 'score_time'].forEach(k => {
+          if (newOral[s.id][k] === '') newOral[s.id][k] = fillValue;
+        });
+      });
+      setOralScores(newOral);
+    }
   };
 
   const validateForm = () => {
@@ -129,12 +170,30 @@ const EvaluationPanel = () => {
     return true;
   };
 
-  const handleSave = async () => {
+  const handleSaveInit = async () => {
     if (!validateForm()) return;
+    
+    // Verificar si falta el contacto
+    try {
+      const { data: teacher } = await supabase.from('teachers_registry')
+        .select('cellphone')
+        .eq('group_id', groupId)
+        .eq('role', role)
+        .single();
+        
+      if (!teacher || !teacher.cellphone || teacher.cellphone.toString().trim() === '') {
+        setShowPhoneModal(true);
+        return;
+      }
+    } catch (e) {}
+
+    finalizeSave();
+  };
+
+  const finalizeSave = async () => {
     if (!window.confirm("¿Está seguro que desea FINALIZAR y enviar estas calificaciones? No podrá modificarlas después.")) return;
 
     try {
-      // 1. Guardar Proyecto Escrito
       await supabase.from('evaluations_written').upsert({
         group_id: groupId,
         evaluator_role: role,
@@ -143,7 +202,6 @@ const EvaluationPanel = () => {
         updated_at: new Date()
       }, { onConflict: 'group_id, evaluator_role' });
 
-      // 2. Guardar Defensa Oral
       const oralPromises = students.map(s => {
         return supabase.from('evaluations_oral').upsert({
           student_id: s.id,
@@ -158,6 +216,20 @@ const EvaluationPanel = () => {
       setView('summary');
     } catch (error) {
       alert("Error al enviar calificaciones: " + error.message);
+    }
+  };
+
+  const submitPhoneAndSave = async () => {
+    if (!phoneNumber || phoneNumber.length < 9) {
+      alert("Por favor ingrese un número de teléfono válido (mínimo 9 dígitos).");
+      return;
+    }
+    try {
+      await supabase.from('teachers_registry').update({ cellphone: phoneNumber }).eq('group_id', groupId).eq('role', role);
+      setShowPhoneModal(false);
+      finalizeSave();
+    } catch (e) {
+      alert("Error al guardar teléfono: " + e.message);
     }
   };
 
@@ -242,19 +314,66 @@ const EvaluationPanel = () => {
   }
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in relative">
+      {/* Phone Modal */}
+      {showPhoneModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="surface p-8" style={{ maxWidth: '400px', width: '90%' }}>
+            <h3 className="h3 mb-4 text-primary">Información de Contacto</h3>
+            <p className="text-muted mb-4">Para finalizar la evaluación, por favor proporciona un número telefónico de contacto en caso de auditorías.</p>
+            <input 
+              type="text" 
+              placeholder="Ej: 0987654321" 
+              className="form-control mb-4" 
+              value={phoneNumber} 
+              onChange={e => setPhoneNumber(e.target.value)}
+            />
+            <div className="flex gap-2 justify-end">
+              <button className="btn btn-secondary" onClick={() => setShowPhoneModal(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={submitPhoneAndSave}>Guardar y Enviar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-8 surface" style={{ borderLeft: '4px solid var(--primary-color)' }}>
-        <h1 className="h2 mb-2">Evaluación del Grupo: <span className="text-primary">{groupId}</span></h1>
+        <h1 className="h2 mb-1">Evaluación del Grupo: <span className="text-primary">{groupId}</span></h1>
         <p className="text-muted mb-2">Tema: <strong>{groupData?.theme || 'No asignado'}</strong></p>
+        <p className="text-muted text-sm mb-3">
+          Tutor: {groupData?.tutor_name || 'N/A'} | Guía: {groupData?.guia_name || 'N/A'} | Revisor: {groupData?.revisor_name || 'N/A'}
+        </p>
         <div className="flex gap-4 mt-2">
           <span className="badge badge-warning"><AlertTriangle size={14}/> Plagio Detectado: {groupData?.plagiarism_percentage}%</span>
           <span className="badge badge-warning"><AlertTriangle size={14}/> IA Detectada: {groupData?.ai_percentage}%</span>
         </div>
       </div>
 
-      <div className="flex gap-4 mb-6" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '1rem' }}>
-        <button className={`btn ${activeTab === 'escrito' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('escrito')}><FileText size={18}/> Rúbrica Proyecto Escrito</button>
-        <button className={`btn ${activeTab === 'oral' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('oral')}><FileText size={18}/> Rúbrica Defensa Oral</button>
+      <div className="flex flex-wrap gap-4 mb-6 justify-between items-center" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '1rem' }}>
+        <div className="flex gap-4">
+          <button className={`btn ${activeTab === 'escrito' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('escrito')}><FileText size={18}/> Rúbrica Proyecto Escrito</button>
+          <button className={`btn ${activeTab === 'oral' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('oral')}><FileText size={18}/> Rúbrica Defensa Oral</button>
+        </div>
+        
+        {/* Autorelleno */}
+        <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+          <span className="text-sm font-medium text-gray-700">Autorellenar vacíos:</span>
+          <input 
+            type="number" 
+            min="0" max="10" step="0.1" 
+            className="form-control" 
+            style={{ width: '80px', padding: '0.25rem 0.5rem' }}
+            placeholder="Nota"
+            value={fillValue}
+            onChange={e => {
+              let val = e.target.value;
+              if (val !== '' && Number(val) > 10) val = '10';
+              setFillValue(val);
+            }}
+          />
+          <button className="btn btn-secondary text-sm" style={{ padding: '0.3rem 0.8rem' }} onClick={fillEmptyScores}>
+            Aplicar
+          </button>
+        </div>
       </div>
 
       <div className="surface mb-8">
@@ -265,11 +384,11 @@ const EvaluationPanel = () => {
               <table className="table">
                 <thead><tr><th>Criterio</th><th style={{ width: '150px' }}>Calificación (0-10)</th></tr></thead>
                 <tbody>
-                  <tr><td><strong>Introducción:</strong> Presenta el tema, problemática y relevancia.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_introduccion} onChange={e => setWrittenScores({...writtenScores, score_introduccion: e.target.value})} /></td></tr>
-                  <tr><td><strong>Antecedentes:</strong> Contexto histórico y teórico del problema.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_antecedentes} onChange={e => setWrittenScores({...writtenScores, score_antecedentes: e.target.value})} /></td></tr>
-                  <tr><td><strong>Definición del Problema:</strong> Planteamiento claro y preciso.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_definicion_problema} onChange={e => setWrittenScores({...writtenScores, score_definicion_problema: e.target.value})} /></td></tr>
-                  <tr><td><strong>Justificación:</strong> Razones que motivan la investigación.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_justificacion} onChange={e => setWrittenScores({...writtenScores, score_justificacion: e.target.value})} /></td></tr>
-                  <tr><td><strong>Objetivos:</strong> Objetivo General y específicos alcanzables.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_objetivos} onChange={e => setWrittenScores({...writtenScores, score_objetivos: e.target.value})} /></td></tr>
+                  <tr><td><strong>Introducción:</strong> Presenta el tema, problemática y relevancia.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_introduccion} onKeyDown={handleKeyDown} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_introduccion', e.target.value)} /></td></tr>
+                  <tr><td><strong>Antecedentes:</strong> Contexto histórico y teórico del problema.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_antecedentes} onKeyDown={handleKeyDown} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_antecedentes', e.target.value)} /></td></tr>
+                  <tr><td><strong>Definición del Problema:</strong> Planteamiento claro y preciso.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_definicion_problema} onKeyDown={handleKeyDown} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_definicion_problema', e.target.value)} /></td></tr>
+                  <tr><td><strong>Justificación:</strong> Razones que motivan la investigación.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_justificacion} onKeyDown={handleKeyDown} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_justificacion', e.target.value)} /></td></tr>
+                  <tr><td><strong>Objetivos:</strong> Objetivo General y específicos alcanzables.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_objetivos} onKeyDown={handleKeyDown} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_objetivos', e.target.value)} /></td></tr>
                 </tbody>
               </table>
             </div>
@@ -279,10 +398,10 @@ const EvaluationPanel = () => {
               <table className="table">
                 <thead><tr><th>Criterio</th><th style={{ width: '150px' }}>Calificación (0-10)</th></tr></thead>
                 <tbody>
-                  <tr><td><strong>Marco Conceptual:</strong> Conceptos fundamentales y su relación.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_marco_conceptual} onChange={e => setWrittenScores({...writtenScores, score_marco_conceptual: e.target.value})} /></td></tr>
-                  <tr><td><strong>Marco Metodológico:</strong> Tipo de investigación, población y técnica.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_marco_metodologico} onChange={e => setWrittenScores({...writtenScores, score_marco_metodologico: e.target.value})} /></td></tr>
-                  <tr><td><strong>Resultados:</strong> Exposición clara de los hallazgos.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_resultados} onChange={e => setWrittenScores({...writtenScores, score_resultados: e.target.value})} /></td></tr>
-                  <tr><td><strong>Análisis de Resultados:</strong> Interpretación y contrastación lógica.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_analisis} onChange={e => setWrittenScores({...writtenScores, score_analisis: e.target.value})} /></td></tr>
+                  <tr><td><strong>Marco Conceptual:</strong> Conceptos fundamentales y su relación.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_marco_conceptual} onKeyDown={handleKeyDown} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_marco_conceptual', e.target.value)} /></td></tr>
+                  <tr><td><strong>Marco Metodológico:</strong> Tipo de investigación, población y técnica.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_marco_metodologico} onKeyDown={handleKeyDown} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_marco_metodologico', e.target.value)} /></td></tr>
+                  <tr><td><strong>Resultados:</strong> Exposición clara de los hallazgos.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_resultados} onKeyDown={handleKeyDown} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_resultados', e.target.value)} /></td></tr>
+                  <tr><td><strong>Análisis de Resultados:</strong> Interpretación y contrastación lógica.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_analisis} onKeyDown={handleKeyDown} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_analisis', e.target.value)} /></td></tr>
                 </tbody>
               </table>
             </div>
@@ -292,8 +411,8 @@ const EvaluationPanel = () => {
               <table className="table">
                 <thead><tr><th>Criterio</th><th style={{ width: '150px' }}>Calificación (0-10)</th></tr></thead>
                 <tbody>
-                  <tr><td><strong>Conclusiones:</strong> Resumen de hallazgos principales en base a objetivos.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_conclusiones} onChange={e => setWrittenScores({...writtenScores, score_conclusiones: e.target.value})} /></td></tr>
-                  <tr><td><strong>Recomendaciones:</strong> Sugerencias prácticas y aplicables.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_recomendaciones} onChange={e => setWrittenScores({...writtenScores, score_recomendaciones: e.target.value})} /></td></tr>
+                  <tr><td><strong>Conclusiones:</strong> Resumen de hallazgos principales en base a objetivos.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_conclusiones} onKeyDown={handleKeyDown} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_conclusiones', e.target.value)} /></td></tr>
+                  <tr><td><strong>Recomendaciones:</strong> Sugerencias prácticas y aplicables.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_recomendaciones} onKeyDown={handleKeyDown} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_recomendaciones', e.target.value)} /></td></tr>
                 </tbody>
               </table>
             </div>
@@ -303,9 +422,9 @@ const EvaluationPanel = () => {
               <table className="table">
                 <thead><tr><th>Criterio</th><th style={{ width: '150px' }}>Calificación (0-10)</th></tr></thead>
                 <tbody>
-                  <tr><td><strong>Referencias:</strong> Formato APA 7ma Edición.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_referencias} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_referencias', e.target.value)} /></td></tr>
-                  <tr><td><strong>Anexos:</strong> Evidencias, fotos, herramientas aplicadas.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_anexos} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_anexos', e.target.value)} /></td></tr>
-                  <tr><td><strong>Formato General:</strong> Márgenes, interlineado, numeración, redacción.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_formato} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_formato', e.target.value)} /></td></tr>
+                  <tr><td><strong>Referencias:</strong> Formato APA 7ma Edición.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_referencias} onKeyDown={handleKeyDown} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_referencias', e.target.value)} /></td></tr>
+                  <tr><td><strong>Anexos:</strong> Evidencias, fotos, herramientas aplicadas.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_anexos} onKeyDown={handleKeyDown} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_anexos', e.target.value)} /></td></tr>
+                  <tr><td><strong>Formato General:</strong> Márgenes, interlineado, numeración, redacción.</td><td><input type="number" min="0" max="10" step="0.1" className="form-control" value={writtenScores.score_formato} onKeyDown={handleKeyDown} onChange={e => handleScoreChange(setWrittenScores, writtenScores, 'score_formato', e.target.value)} /></td></tr>
                 </tbody>
               </table>
             </div>
@@ -330,6 +449,7 @@ const EvaluationPanel = () => {
                             min="0" max="10" step="0.1" 
                             className="form-control" 
                             value={oralScores[s.id]?.[key] || ''} 
+                            onKeyDown={handleKeyDown}
                             onChange={(e) => {
                               const currentObj = oralScores[s.id] || {};
                               let numStr = e.target.value;
@@ -351,7 +471,7 @@ const EvaluationPanel = () => {
         )}
         
         <div className="mt-8 flex justify-end">
-          <button className="btn btn-success" onClick={handleSave} style={{ padding: '0.75rem 2rem', fontSize: '1.1rem' }}>
+          <button className="btn btn-success" onClick={handleSaveInit} style={{ padding: '0.75rem 2rem', fontSize: '1.1rem' }}>
             <Save size={20} className="mr-2" /> Finalizar y Enviar Evaluación
           </button>
         </div>
