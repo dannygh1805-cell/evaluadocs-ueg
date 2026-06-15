@@ -151,7 +151,7 @@ const Login = () => {
 
   return (
     <div className="flex items-center justify-center min-h-[80vh] px-4 py-8">
-      <div className="w-full max-w-[1000px] animate-fade-in">
+      <div className="w-full max-w-[600px] animate-fade-in">
         
         {view === 'teacher' ? (
           <>
@@ -167,53 +167,38 @@ const Login = () => {
 
             {error && <div className="badge badge-danger w-full justify-center py-2 text-center mb-6 block max-w-[500px] mx-auto">{error}</div>}
 
-            {/* Layout Panorámico */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-stretch">
-              
-              {/* Columna Izquierda: Anterior */}
-              <div className="hidden md:block col-span-1">
-                {renderSideGroup(prevGroup, 'Anterior', <ChevronLeft size={14}/>)}
-              </div>
-
-              {/* Columna Central: Actual */}
-              <div className="col-span-1 md:col-span-2 surface shadow-md flex flex-col p-6 rounded-lg border" style={{ borderColor: 'var(--color-primary)' }}>
-                <div className="form-group mb-6">
-                  <label className="form-label font-bold text-center block text-lg mb-4">1. Grupo en Evaluación</label>
-                  <select 
-                    className="form-control text-center text-md py-3" 
-                    value={currentGroup?.id || ''}
-                    onChange={handleGroupSelect}
-                    disabled={loading && activeGroups.length === 0}
-                    style={{ backgroundColor: 'var(--bg-surface-hover)', border: '2px solid var(--border-light)' }}
-                  >
-                    <option value="">-- Seleccione un grupo de la cola --</option>
-                    {activeGroups.map(g => (
-                      <option key={g.id} value={g.id}>{g.id} - {g.course}</option>
-                    ))}
-                  </select>
-                  {activeGroups.length === 0 && !loading && (
-                    <div className="text-warning text-sm mt-3 text-center">No hay grupos habilitados en la cola de evaluación en este momento.</div>
-                  )}
-                </div>
-
-                {currentGroup && (
-                  <div className="mt-auto animate-fade-in flex flex-col flex-grow">
-                    <label className="form-label font-bold mb-4 block text-center">2. Seleccione su Asiento</label>
-                    <div className="grid grid-cols-3 gap-3 flex-grow">
-                      {renderRoleCard('tutor', 'Tutor')}
-                      {renderRoleCard('guia', 'Guía')}
-                      {renderRoleCard('revisor', 'Revisor')}
-                    </div>
-                    {joining && <div className="text-center text-primary text-sm mt-4 font-bold animate-pulse">Ingresando a la sala...</div>}
-                  </div>
+            {/* Layout Simple */}
+            <div className="surface shadow-md flex flex-col p-6 rounded-lg border" style={{ borderColor: 'var(--color-primary)' }}>
+              <div className="form-group mb-6">
+                <label className="form-label font-bold text-center block text-lg mb-4">1. Grupo en Evaluación</label>
+                <select 
+                  className="form-control text-center text-md py-3" 
+                  value={currentGroup?.id || ''}
+                  onChange={handleGroupSelect}
+                  disabled={loading && activeGroups.length === 0}
+                  style={{ backgroundColor: 'var(--bg-surface-hover)', border: '2px solid var(--border-light)' }}
+                >
+                  <option value="">-- Seleccione un grupo de la cola --</option>
+                  {activeGroups.map(g => (
+                    <option key={g.id} value={g.id}>{g.id} - {g.course}</option>
+                  ))}
+                </select>
+                {activeGroups.length === 0 && !loading && (
+                  <div className="text-warning text-sm mt-3 text-center">No hay grupos habilitados en la cola de evaluación en este momento.</div>
                 )}
               </div>
 
-              {/* Columna Derecha: Siguiente */}
-              <div className="hidden md:block col-span-1">
-                {renderSideGroup(nextGroup, 'Siguiente', <ChevronRight size={14}/>)}
-              </div>
-
+              {currentGroup && (
+                <div className="mt-auto animate-fade-in flex flex-col flex-grow">
+                  <label className="form-label font-bold mb-4 block text-center">2. Seleccione su Asiento</label>
+                  <div className="grid grid-cols-3 gap-3 flex-grow">
+                    {renderRoleCard('tutor', 'Tutor')}
+                    {renderRoleCard('guia', 'Guía')}
+                    {renderRoleCard('revisor', 'Revisor')}
+                  </div>
+                  {joining && <div className="text-center text-primary text-sm mt-4 font-bold animate-pulse">Ingresando a la sala...</div>}
+                </div>
+              )}
             </div>
 
             <div className="mt-10 text-center">
