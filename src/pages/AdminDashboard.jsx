@@ -252,11 +252,6 @@ const AdminDashboard = () => {
                   <tr key={group.id} onDoubleClick={() => isGroupFullyCompleted(group) && setSummaryGroup(group)} style={{ cursor: isGroupFullyCompleted(group) ? 'pointer' : 'default' }}>
                     <td style={{ maxWidth: '300px' }}>
                       <span className="badge badge-primary mb-2">{group.id} ({group.course})</span>
-                      <div className="mb-3 p-3 rounded border-l-4" style={{ fontSize: '0.8rem', backgroundColor: 'var(--bg-surface-hover)', borderColor: 'var(--color-primary)' }}>
-                        <div className="mb-1 flex items-center"><strong className="text-primary" style={{width: '65px'}}>Tutor:</strong> <span style={{fontWeight: 500}}>{group.tutor_name || 'N/A'}</span></div>
-                        <div className="mb-1 flex items-center"><strong className="text-primary" style={{width: '65px'}}>Guía:</strong> <span style={{fontWeight: 500}}>{group.guia_name || 'N/A'}</span></div>
-                        <div className="flex items-center"><strong className="text-primary" style={{width: '65px'}}>Revisor:</strong> <span style={{fontWeight: 500}}>{group.revisor_name || 'N/A'}</span></div>
-                      </div>
                       <div className="mt-2">
                         {group.students?.map(s => (
                           <div key={s.id} className="flex items-center justify-between gap-2 mb-2 p-2 rounded transition-colors" style={{fontSize: '0.85rem', backgroundColor: 'var(--bg-surface-hover)', border: '1px solid var(--border-light)'}}>
@@ -303,8 +298,13 @@ const AdminDashboard = () => {
                         </div>
                       ) : (
                         <div style={{ fontSize: '0.9rem' }}>
-                          <div><strong>Tema:</strong> {group.theme || 'No definido'}</div>
-                          <div><strong>Plagio:</strong> {group.plagiarism_percentage}% | <strong>IA:</strong> {group.ai_percentage}%</div>
+                          <div className="mb-3 p-3 rounded border-l-4" style={{ fontSize: '0.85rem', backgroundColor: 'var(--bg-surface-hover)', borderColor: 'var(--color-primary)' }}>
+                            <div className="mb-1 flex items-center"><strong className="text-primary" style={{width: '65px'}}>Tutor:</strong> <span style={{fontWeight: 500}}>{group.tutor_name || 'N/A'}</span></div>
+                            <div className="mb-1 flex items-center"><strong className="text-primary" style={{width: '65px'}}>Guía:</strong> <span style={{fontWeight: 500}}>{group.guia_name || 'N/A'}</span></div>
+                            <div className="flex items-center"><strong className="text-primary" style={{width: '65px'}}>Revisor:</strong> <span style={{fontWeight: 500}}>{group.revisor_name || 'N/A'}</span></div>
+                          </div>
+                          <div className="mb-1"><strong>Tema:</strong> {group.theme || 'No definido'}</div>
+                          <div><strong>Plagio:</strong> <span className="text-danger">{group.plagiarism_percentage}%</span> | <strong>IA:</strong> <span className="text-warning">{group.ai_percentage}%</span></div>
                         </div>
                       )}
                     </td>
