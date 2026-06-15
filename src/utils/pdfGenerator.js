@@ -25,19 +25,21 @@ export const generateReport = (groupData, evaluationData) => {
     headStyles: { fillColor: primaryColor, textColor: 255 },
     body: [
       ['Fecha de informe', new Date().toLocaleDateString(), 'Nº De Informe', `18D02-UEG-2024-2025-${Math.floor(Math.random()*1000)}`],
-      ['Tema', { content: groupData.theme, colSpan: 3 }],
-      ['Curso', { content: groupData.course, colSpan: 3 }]
+      ['Tema', { content: groupData.theme || 'N/A', colSpan: 3 }],
+      ['Curso', { content: groupData.course || 'N/A', colSpan: 3 }]
     ]
   });
 
   const getTeacherName = (role) => {
     const t = groupData.teachers_registry?.find(t => t.role === role);
-    return t ? t.full_name : `Docente ${role}`;
+    return (t && t.full_name) ? String(t.full_name) : `Docente ${role}`;
   };
+
+  let currentY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 10 : 55;
 
   // Comisión Calificadora
   autoTable(doc, {
-    startY: doc.lastAutoTable.finalY + 10,
+    startY: currentY,
     theme: 'grid',
     head: [['Cargo', 'Nombre']],
     headStyles: { fillColor: secondaryColor, textColor: 0 },
@@ -48,16 +50,18 @@ export const generateReport = (groupData, evaluationData) => {
     ]
   });
 
+  currentY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 15 : currentY + 30;
+
   // Resultados por Estudiante
   doc.setFont('helvetica', 'bold');
-  doc.text('RESULTADO DE EVALUACIÓN PROYECTO DE GRADO', 14, doc.lastAutoTable.finalY + 15);
+  doc.text('RESULTADO DE EVALUACIÓN PROYECTO DE GRADO', 14, currentY);
   
   const studentResultsBody = groupData.students.map((student, index) => {
     // Promedio Escrito
     const evW = groupData.evaluations_written || [];
     let sumW = 0;
     evW.forEach(e => {
-       const sumFields = Number(e.score_introduccion) + Number(e.score_antecedentes) + Number(e.score_definicion_problema) + Number(e.score_justificacion) + Number(e.score_objetivos) + Number(e.score_marco_conceptual) + Number(e.score_marco_metodologico) + Number(e.score_resultados) + Number(e.score_analisis) + Number(e.score_conclusiones) + Number(e.score_recomendaciones) + Number(e.score_referencias) + Number(e.score_anexos) + Number(e.score_formato);
+       const sumFields = Number(e.score_introduccion || 0) + Number(e.score_antecedentes || 0) + Number(e.score_definicion_problema || 0) + Number(e.score_justificacion || 0) + Number(e.score_objetivos || 0) + Number(e.score_marco_conceptual || 0) + Number(e.score_marco_metodologico || 0) + Number(e.score_resultados || 0) + Number(e.score_analisis || 0) + Number(e.score_conclusiones || 0) + Number(e.score_recomendaciones || 0) + Number(e.score_referencias || 0) + Number(e.score_anexos || 0) + Number(e.score_formato || 0);
        sumW += (sumFields / 14);
     });
     const avgWritten = evW.length ? (sumW / evW.length) : 0;
@@ -66,18 +70,19 @@ export const generateReport = (groupData, evaluationData) => {
     const evO = student.evaluations_oral || [];
     let sumO = 0;
     evO.forEach(e => {
-       const sumFields = Number(e.score_communication) + Number(e.score_knowledge) + Number(e.score_answers) + Number(e.score_time);
+       const sumFields = Number(e.score_communication || 0) + Number(e.score_knowledge || 0) + Number(e.score_answers || 0) + Number(e.score_time || 0);
        sumO += (sumFields / 4);
     });
     const avgOral = evO.length ? (sumO / evO.length) : 0;
 
     const notaFinal = ((avgWritten + avgOral) / 2).toFixed(2);
 
-    return [`Estudiante ${index + 1}`, student.full_name, avgWritten.toFixed(2), avgOral.toFixed(2), notaFinal];
+    return [`Estudiante ${index + 1}`, student.full_name || 'N/A', avgWritten.toFixed(2), avgOral.toFixed(2), notaFinal];
   });
 
+  currentY = currentY + 5;
   autoTable(doc, {
-    startY: doc.lastAutoTable.finalY + 20,
+    startY: currentY,
     theme: 'grid',
     head: [['', 'Nombre del Estudiante', 'P. Escrito', 'P. Oral', 'Nota Final']],
     headStyles: { fillColor: primaryColor, textColor: 255 },
@@ -85,7 +90,7 @@ export const generateReport = (groupData, evaluationData) => {
   });
 
   // Área para firmas físicas
-  const signatureY = doc.lastAutoTable.finalY + 50;
+  const signatureY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 30 : currentY + 50;
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
