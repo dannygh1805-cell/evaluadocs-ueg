@@ -41,7 +41,7 @@ const EvaluationPanel = () => {
       if (gData) setGroupData(gData);
 
       // Get Students
-      const { data: sData } = await supabase.from('students').select('*').eq('group_id', groupId);
+      const { data: sData } = await supabase.from('students').select('*, evaluations_practical(*)').eq('group_id', groupId);
       if (sData) {
         setStudents(sData);
         // Initialize oral scores with draft recovery
@@ -442,7 +442,12 @@ const EvaluationPanel = () => {
                 <tbody>
                   {students.map(s => (
                     <tr key={s.id}>
-                      <td style={{ fontWeight: 500 }}>{s.full_name}</td>
+                      <td style={{ minWidth: '220px' }}>
+                        <div style={{ fontWeight: 500 }}>{s.full_name}</div>
+                        <div className="text-muted" style={{fontSize: '0.75rem', marginTop: '4px'}}>
+                          Práctico: <span className="font-bold text-primary">{s.evaluations_practical && s.evaluations_practical.length > 0 ? s.evaluations_practical[0].final_score + ' / 10' : 'Pendiente de Admin'}</span>
+                        </div>
+                      </td>
                       {['score_communication', 'score_knowledge', 'score_answers', 'score_time'].map(key => (
                         <td key={key}>
                           <input 
