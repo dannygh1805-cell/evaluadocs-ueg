@@ -55,7 +55,7 @@ export const generateReport = (groupData, evaluationData) => {
     theme: 'grid',
     headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
     body: [
-      ['Fecha de informe', new Date().toLocaleDateString(), 'Nº De informe', `18D02-UEG-2024-2025-${groupData.id.split('-')[1] || '01'}`]
+      ['Fecha de informe', new Date().toLocaleDateString(), 'Nº De informe', `18D02-UEG-V-2025-2026-${groupData.id.replace('G-', '')}`]
     ]
   });
 
@@ -209,5 +209,7 @@ export const generateReport = (groupData, evaluationData) => {
   doc.text(getTeacherName('revisor'), 100, currentY + 5, { align: 'center' });
   doc.text('Docente Revisor', 100, currentY + 10, { align: 'center' });
 
-  doc.save(`INFORME_${groupData.id}_UEG.pdf`);
+  const courseStr = (groupData.course || '').replace(/ /g, '_').toUpperCase();
+  const surnames = groupData.students ? groupData.students.map(s => s.full_name.split(' ')[0].toUpperCase()).join('_') : 'ESTUDIANTES';
+  doc.save(`${courseStr}_${surnames}_2025_2026.pdf`);
 };
