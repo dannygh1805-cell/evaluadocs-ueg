@@ -317,8 +317,8 @@ const EvaluationPanel = () => {
     <div className="animate-fade-in relative">
       {/* Phone Modal */}
       {showPhoneModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="surface p-8" style={{ maxWidth: '400px', width: '90%' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
+          <div className="surface p-8" style={{ maxWidth: '400px', width: '90%', backgroundColor: 'var(--bg-surface)', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             <h3 className="h3 mb-4 text-primary">Información de Contacto</h3>
             <p className="text-muted mb-4">Para finalizar la evaluación, por favor proporciona un número telefónico de contacto en caso de auditorías.</p>
             <input 

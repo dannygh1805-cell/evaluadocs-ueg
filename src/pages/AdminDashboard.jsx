@@ -384,8 +384,8 @@ const AdminDashboard = () => {
 
       {/* Modal de Resumen */}
       {summaryGroup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="surface p-6 overflow-y-auto max-h-[90vh]" style={{ width: '100%', maxWidth: '800px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
+          <div className="surface p-6 overflow-y-auto max-h-[90vh]" style={{ width: '100%', maxWidth: '800px', backgroundColor: 'var(--bg-surface)', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="h2 text-primary">Resumen General: Grupo {summaryGroup.id}</h2>
               <button onClick={() => setSummaryGroup(null)} className="btn btn-secondary p-2"><X size={20}/></button>
