@@ -155,7 +155,7 @@ export const generateReport = (groupData, evaluationData) => {
     const evP = student.evaluations_practical || [];
     let sumP = 0;
     evP.forEach(e => sumP += Number(e.final_score || 0));
-    const avgPractical = evP.length ? (sumP / evP.length) : 10.0;
+    const avgPractical = evP.length ? (sumP / evP.length) : 0.0;
 
     const notaFinal = ((avgWritten + avgOral + avgPractical) / 3).toFixed(2);
 

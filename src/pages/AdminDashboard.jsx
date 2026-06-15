@@ -422,14 +422,16 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            <h3 className="font-bold text-lg mb-2 text-primary">Promedios Individuales de Defensa Oral</h3>
+            <h3 className="font-bold text-lg mb-2 text-primary">Promedios Individuales (Oral + Práctico + Final)</h3>
             <div className="table-container">
               <table className="table mb-0">
                 <thead>
                   <tr className="bg-gray-50">
                     <th>Estudiante</th>
-                    <th>Detalle de Tribunal (T / G / R)</th>
-                    <th>Promedio Defensa Oral</th>
+                    <th>Oral (T / G / R)</th>
+                    <th>P. Oral</th>
+                    <th>P. Práctico</th>
+                    <th>Nota Final</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -443,16 +445,29 @@ const AdminDashboard = () => {
                     const tO = getOralForRole('tutor');
                     const gO = getOralForRole('guia');
                     const rO = getOralForRole('revisor');
-                    const avgOral = ((tO + gO + rO)/3).toFixed(2);
+                    const avgOral = ((tO + gO + rO)/3);
+                    
+                    const pScores = student.evaluations_practical || [];
+                    const pTotal = pScores.reduce((acc, p) => acc + Number(p.final_score || 0), 0);
+                    const avgPractical = pScores.length ? pTotal / pScores.length : 0.0;
+
+                    const writtenAvgNum = ['tutor', 'guia', 'revisor'].reduce((acc, role) => {
+                        const ev = summaryGroup.evaluations_written?.find(e => e.evaluator_role === role);
+                        return acc + Number(ev ? calculateWrittenAvg(ev) : 0);
+                      }, 0) / 3;
+
+                    const finalScore = ((writtenAvgNum + avgOral + avgPractical) / 3).toFixed(2);
                     
                     return (
                       <tr key={student.id}>
                         <td className="font-medium">{student.full_name}</td>
                         <td className="text-muted" style={{fontSize:'0.85rem'}}>
-                          Tutor: {tO.toFixed(2)} | Guía: {gO.toFixed(2)} | Rev: {rO.toFixed(2)}
+                          T: {tO.toFixed(2)} | G: {gO.toFixed(2)} | R: {rO.toFixed(2)}
                         </td>
-                        <td className="text-success font-bold">
-                          {avgOral} / 10.00
+                        <td className="font-bold">{avgOral.toFixed(2)}</td>
+                        <td className="font-bold text-primary">{avgPractical.toFixed(2)}</td>
+                        <td className="text-success font-bold" style={{fontSize:'1.1em'}}>
+                          {finalScore} / 10.00
                         </td>
                       </tr>
                     )
