@@ -39,6 +39,7 @@ const AdminDashboard = () => {
       .order('id');
       
     if (!groupsError && groupsData) {
+      groupsData.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
       setGroups(groupsData);
 
       // Precargar calificaciones prácticas existentes

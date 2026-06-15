@@ -23,10 +23,15 @@ const Login = () => {
     setLoading(true);
     const { data, error: fetchError } = await supabase
       .from('groups')
-      .select('id, course')
+      .select('id, course, evaluations_written(status)')
       .eq('evaluation_status', 'in_progress');
     if (!fetchError && data) {
-      setActiveGroups(data);
+      const pendingGroups = data.filter(g => {
+        const completedCount = g.evaluations_written?.filter(e => e.status === 'completed').length || 0;
+        return completedCount < 3;
+      });
+      pendingGroups.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
+      setActiveGroups(pendingGroups);
     }
     setLoading(false);
   };
