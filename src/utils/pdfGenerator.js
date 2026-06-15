@@ -7,11 +7,17 @@ export const generateReport = (groupData, evaluationData) => {
   const headerColor = [220, 224, 230]; // Gris claro profesional para tablas
   const textColor = 0; // Negro
 
+  const toTitleCase = (str) => {
+    if (!str) return '';
+    return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
   const getTeacherName = (role) => {
-    if (role === 'tutor') return groupData.tutor_name || 'N/A';
-    if (role === 'guia') return groupData.guia_name || 'N/A';
-    if (role === 'revisor') return groupData.revisor_name || 'N/A';
-    return 'N/A';
+    let name = 'N/A';
+    if (role === 'tutor') name = groupData.tutor_name || 'N/A';
+    if (role === 'guia') name = groupData.guia_name || 'N/A';
+    if (role === 'revisor') name = groupData.revisor_name || 'N/A';
+    return name === 'N/A' ? name : toTitleCase(name);
   };
 
   const getTeacherPhone = (role) => {
