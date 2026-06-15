@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
 import { Save, AlertTriangle, FileText } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
@@ -316,7 +317,7 @@ const EvaluationPanel = () => {
   return (
     <div className="animate-fade-in relative">
       {/* Phone Modal */}
-      {showPhoneModal && (
+      {showPhoneModal && createPortal(
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
           <div className="surface p-8" style={{ maxWidth: '400px', width: '90%', backgroundColor: 'var(--bg-surface)', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             <h3 className="h3 mb-4 text-primary">Información de Contacto</h3>
@@ -334,7 +335,7 @@ const EvaluationPanel = () => {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       <div className="mb-8 surface" style={{ borderLeft: '4px solid var(--primary-color)' }}>
         <h1 className="h2 mb-1">Evaluación del Grupo: <span className="text-primary">{groupId}</span></h1>
