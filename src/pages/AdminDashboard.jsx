@@ -243,6 +243,11 @@ const AdminDashboard = () => {
                   <tr key={group.id} onDoubleClick={() => isGroupFullyCompleted(group) && setSummaryGroup(group)} className={isGroupFullyCompleted(group) ? "cursor-pointer hover:bg-gray-50" : ""}>
                     <td style={{ maxWidth: '300px' }}>
                       <span className="badge badge-primary mb-2">{group.id} ({group.course})</span>
+                      <div className="text-muted mb-2" style={{ fontSize: '0.75rem', fontWeight: 500, backgroundColor: '#f8fafc', padding: '6px', borderRadius: '4px', borderLeft: '2px solid #38bdf8' }}>
+                        <span className="block">Tutor: {group.tutor_name || 'N/A'}</span>
+                        <span className="block">Guía: {group.guia_name || 'N/A'}</span>
+                        <span className="block">Revisor: {group.revisor_name || 'N/A'}</span>
+                      </div>
                       <div className="text-muted mt-2">
                         {group.students?.map(s => (
                           <div key={s.id} className="flex items-center justify-between gap-2 mb-1 p-1 hover:bg-gray-100 rounded" style={{fontSize: '0.85rem'}}>
@@ -399,7 +404,8 @@ const AdminDashboard = () => {
                   {['tutor', 'guia', 'revisor'].map(role => {
                     const ev = summaryGroup.evaluations_written?.find(e => e.evaluator_role === role);
                     const avg = ev ? calculateWrittenAvg(ev) : '0.00';
-                    return <div key={role} className="flex justify-between border-b pb-1"><span>{role.charAt(0).toUpperCase() + role.slice(1)}:</span> <strong>{avg} / 10.00</strong></div>;
+                    const tName = summaryGroup[`${role}_name`] || 'N/A';
+                    return <div key={role} className="flex justify-between border-b pb-1"><span>{role.charAt(0).toUpperCase() + role.slice(1)} ({tName}):</span> <strong>{avg} / 10.00</strong></div>;
                   })}
                 </div>
                 <div className="flex justify-between text-success font-bold mt-4 text-lg">
