@@ -132,6 +132,12 @@ export const generateReport = (groupData, evaluationData) => {
   doc.setFontSize(11);
   doc.text('RESULTADO DE EVALUACIÓN PROYECTO DE GRADO', 14, currentY);
   
+  const plagio = Number(groupData.plagiarism_percentage || 0);
+  const ai = Number(groupData.ai_percentage || 0);
+  let penalty = 0;
+  if (plagio > 15) penalty += Math.ceil((plagio - 15) / 5) * 0.25;
+  if (ai > 15) penalty += Math.ceil((ai - 15) / 5) * 0.25;
+  
   const resultsBody = (groupData.students || []).map((student, index) => {
     // Promedio Escrito
     const evW = groupData.evaluations_written || [];
@@ -140,7 +146,8 @@ export const generateReport = (groupData, evaluationData) => {
        const sumFields = Number(e.score_introduccion||0) + Number(e.score_antecedentes||0) + Number(e.score_definicion_problema||0) + Number(e.score_justificacion||0) + Number(e.score_objetivos||0) + Number(e.score_marco_conceptual||0) + Number(e.score_marco_metodologico||0) + Number(e.score_resultados||0) + Number(e.score_analisis||0) + Number(e.score_conclusiones||0) + Number(e.score_recomendaciones||0) + Number(e.score_referencias||0) + Number(e.score_anexos||0) + Number(e.score_formato||0);
        sumW += (sumFields / 14);
     });
-    const avgWritten = evW.length ? (sumW / evW.length) : 0;
+    const avgWrittenRaw = evW.length ? (sumW / evW.length) : 0;
+    const avgWritten = Math.max(0, avgWrittenRaw - penalty);
 
     // Promedio Oral
     const evO = student.evaluations_oral || [];

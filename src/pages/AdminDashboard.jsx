@@ -176,6 +176,15 @@ const AdminDashboard = () => {
     return (scores.reduce((a,b) => a + Number(b||0), 0) / 14).toFixed(2);
   };
 
+  const calculatePenalty = (group) => {
+    let penalty = 0;
+    const plagio = Number(group.plagiarism_percentage || 0);
+    const ai = Number(group.ai_percentage || 0);
+    if (plagio > 15) penalty += Math.ceil((plagio - 15) / 5) * 0.25;
+    if (ai > 15) penalty += Math.ceil((ai - 15) / 5) * 0.25;
+    return penalty;
+  };
+
   const getTeacherStatus = (group, roleName) => {
     const roleMap = { 'Tutor': 'tutor', 'Guía': 'guia', 'Revisor': 'revisor' };
     const dbRole = roleMap[roleName];
@@ -244,9 +253,9 @@ const AdminDashboard = () => {
                     <td style={{ maxWidth: '300px' }}>
                       <span className="badge badge-primary mb-2">{group.id} ({group.course})</span>
                       <div className="text-muted mb-2" style={{ fontSize: '0.75rem', fontWeight: 500, backgroundColor: '#f8fafc', padding: '6px', borderRadius: '4px', borderLeft: '2px solid #38bdf8' }}>
-                        <span className="block">Tutor: {group.tutor_name || 'N/A'}</span>
-                        <span className="block">Guía: {group.guia_name || 'N/A'}</span>
-                        <span className="block">Revisor: {group.revisor_name || 'N/A'}</span>
+                        <div className="mb-1">Tutor: {group.tutor_name || 'N/A'}</div>
+                        <div className="mb-1">Guía: {group.guia_name || 'N/A'}</div>
+                        <div>Revisor: {group.revisor_name || 'N/A'}</div>
                       </div>
                       <div className="text-muted mt-2">
                         {group.students?.map(s => (
@@ -408,17 +417,28 @@ const AdminDashboard = () => {
                     return <div key={role} className="flex justify-between border-b pb-1"><span>{role.charAt(0).toUpperCase() + role.slice(1)} ({tName}):</span> <strong>{avg} / 10.00</strong></div>;
                   })}
                 </div>
-                <div className="flex justify-between text-success font-bold mt-4 text-lg">
-                  <span>General Escrito:</span> 
-                  <span>{
-                    (
-                      ['tutor', 'guia', 'revisor'].reduce((acc, role) => {
-                        const ev = summaryGroup.evaluations_written?.find(e => e.evaluator_role === role);
-                        return acc + Number(ev ? calculateWrittenAvg(ev) : 0);
-                      }, 0) / 3
-                    ).toFixed(2)
-                  } / 10.00</span>
-                </div>
+                {(() => {
+                  const penalty = calculatePenalty(summaryGroup);
+                  const writtenAvgRaw = ['tutor', 'guia', 'revisor'].reduce((acc, role) => {
+                    const ev = summaryGroup.evaluations_written?.find(e => e.evaluator_role === role);
+                    return acc + Number(ev ? calculateWrittenAvg(ev) : 0);
+                  }, 0) / 3;
+                  const writtenAvgNum = Math.max(0, writtenAvgRaw - penalty);
+                  return (
+                    <>
+                      {penalty > 0 && (
+                        <div className="flex justify-between text-danger font-bold mt-2 text-sm border-t pt-2">
+                          <span>Penalización (Plagio/IA > 15%):</span>
+                          <span>-{penalty.toFixed(2)} pts</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-success font-bold mt-4 text-lg">
+                        <span>General Escrito:</span> 
+                        <span>{writtenAvgNum.toFixed(2)} / 10.00</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
@@ -452,10 +472,12 @@ const AdminDashboard = () => {
                     const pTotal = pScores.reduce((acc, p) => acc + Number(p.final_score || 0), 0);
                     const avgPractical = pScores.length ? pTotal / pScores.length : 0.0;
 
-                    const writtenAvgNum = ['tutor', 'guia', 'revisor'].reduce((acc, role) => {
+                    const penalty = calculatePenalty(summaryGroup);
+                    const writtenAvgRaw = ['tutor', 'guia', 'revisor'].reduce((acc, role) => {
                         const ev = summaryGroup.evaluations_written?.find(e => e.evaluator_role === role);
                         return acc + Number(ev ? calculateWrittenAvg(ev) : 0);
                       }, 0) / 3;
+                    const writtenAvgNum = Math.max(0, writtenAvgRaw - penalty);
 
                     const finalScore = ((writtenAvgNum + avgOral + avgPractical) / 3).toFixed(2);
                     
