@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { selloBase64 } from '../assets/selloBase64';
 
 export const generateReport = (groupData, evaluationData) => {
   const doc = new jsPDF('p', 'mm', 'a4');
@@ -18,17 +19,33 @@ export const generateReport = (groupData, evaluationData) => {
     return (t && t.cellphone) ? String(t.cellphone) : 'N/A';
   };
 
+  // Dibujar encabezado difuminado (gradiente de celeste a blanco)
+  for (let i = 0; i < 35; i++) {
+    // Celeste pastel a Blanco
+    const r = Math.round(190 + ((255 - 190) * (i / 35)));
+    const g = Math.round(225 + ((255 - 225) * (i / 35)));
+    const b = Math.round(245 + ((255 - 245) * (i / 35)));
+    doc.setFillColor(r, g, b);
+    doc.rect(0, i, 210, 1.5, 'F');
+  }
+
+  // Insertar Sello Institucional
+  if (selloBase64) {
+    doc.addImage(selloBase64, 'PNG', 14, 5, 22, 22);
+  }
+
   // Titulo
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(textColor);
-  doc.text('Unidad Educativa Guayaquil', 105, 15, { align: 'center' });
+  doc.setFontSize(16);
+  doc.setTextColor(30, 58, 138); // Azul oscuro
+  doc.text('Unidad Educativa Guayaquil', 105, 14, { align: 'center' });
   doc.setFontSize(12);
-  doc.text('Informe de Calificación de Estudio de Caso', 105, 22, { align: 'center' });
+  doc.setTextColor(textColor);
+  doc.text('Informe de Calificación de Estudio de Caso', 105, 21, { align: 'center' });
 
   // 1. Datos Informativos
   autoTable(doc, {
-    startY: 30,
+    startY: 32,
     theme: 'grid',
     headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
     body: [
