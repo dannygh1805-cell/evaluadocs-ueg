@@ -428,7 +428,7 @@ const AdminDashboard = () => {
                     <>
                       {penalty > 0 && (
                         <div className="flex justify-between text-danger font-bold mt-2 text-sm border-t pt-2">
-                          <span>Penalización (Plagio/IA > 15%):</span>
+                          <span>Penalización (Plagio/IA &gt; 15%):</span>
                           <span>-{penalty.toFixed(2)} pts</span>
                         </div>
                       )}
