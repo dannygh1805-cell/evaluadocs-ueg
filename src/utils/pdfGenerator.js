@@ -161,13 +161,14 @@ export const generateReport = (groupData, evaluationData) => {
     theme: 'grid',
     head: [['', 'Estudiante', 'P. Práctico', 'P. Escrito', 'P. Oral', 'NOTA DE GRADO']],
     headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold', halign: 'center' },
+    styles: { fontSize: 9, cellPadding: 2 },
     columnStyles: {
-      0: { cellWidth: 24, halign: 'center' },
+      0: { cellWidth: 22, halign: 'center' },
       1: { cellWidth: 'auto' },
-      2: { cellWidth: 22, halign: 'center' },
-      3: { cellWidth: 22, halign: 'center' },
-      4: { cellWidth: 18, halign: 'center' },
-      5: { cellWidth: 36, halign: 'center' }
+      2: { cellWidth: 20, halign: 'center' },
+      3: { cellWidth: 20, halign: 'center' },
+      4: { cellWidth: 16, halign: 'center' },
+      5: { cellWidth: 32, halign: 'center' }
     },
     body: resultsBody
   });
