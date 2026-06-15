@@ -7,6 +7,7 @@ const AdminDashboard = () => {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('gestion');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Estado para la configuración de un grupo antes de iniciar
   const [configuringGroupId, setConfiguringGroupId] = useState(null);
@@ -156,10 +157,20 @@ const AdminDashboard = () => {
 
       {activeTab === 'gestion' && (
         <div className="surface mb-8">
-          <h2 className="h3 flex items-center gap-2 mb-4">
-            <Users size={20} className="text-primary" />
-            Control de Acceso a Evaluación ({groups.length} Grupos)
-          </h2>
+          <div className="flex flex-wrap justify-between items-center mb-4 gap-4">
+            <h2 className="h3 flex items-center gap-2 m-0">
+              <Users size={20} className="text-primary" />
+              Control de Acceso a Evaluación ({groups.length} Grupos)
+            </h2>
+            <input 
+              type="text" 
+              className="form-control" 
+              placeholder="🔍 Buscar por grupo, curso o estudiante..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ maxWidth: '350px' }}
+            />
+          </div>
           
           <div className="table-container">
             <table className="table">
@@ -172,7 +183,11 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {groups.map((group) => (
+                {groups.filter(g => 
+                  g.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                  g.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  g.students?.some(s => s.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
+                ).map((group) => (
                   <tr key={group.id}>
                     <td style={{ maxWidth: '250px' }}>
                       <span className="badge badge-primary mb-2">{group.id} ({group.course})</span>
