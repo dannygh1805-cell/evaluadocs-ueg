@@ -429,6 +429,7 @@ const AdminDashboard = () => {
                   <tr className="bg-gray-50">
                     <th>Estudiante</th>
                     <th>Oral (T / G / R)</th>
+                    <th>P. Escrito</th>
                     <th>P. Oral</th>
                     <th>P. Práctico</th>
                     <th>Nota Final</th>
@@ -464,6 +465,7 @@ const AdminDashboard = () => {
                         <td className="text-muted" style={{fontSize:'0.85rem'}}>
                           T: {tO.toFixed(2)} | G: {gO.toFixed(2)} | R: {rO.toFixed(2)}
                         </td>
+                        <td className="font-bold">{writtenAvgNum.toFixed(2)}</td>
                         <td className="font-bold">{avgOral.toFixed(2)}</td>
                         <td className="font-bold text-primary">{avgPractical.toFixed(2)}</td>
                         <td className="text-success font-bold" style={{fontSize:'1.1em'}}>
