@@ -22,8 +22,8 @@ const AdminDashboard = () => {
       .select(`
         *,
         teachers_registry(role),
-        students(id, full_name, evaluations_oral(status, evaluator_role), evaluations_practical(status, evaluator_role, final_score)),
-        evaluations_written(status, evaluator_role)
+        students(id, full_name, evaluations_oral(*), evaluations_practical(*)),
+        evaluations_written(*)
       `)
       .order('id');
       
