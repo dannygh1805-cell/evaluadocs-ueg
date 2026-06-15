@@ -3,12 +3,14 @@ import autoTable from 'jspdf-autotable';
 
 export const generateReport = (groupData, evaluationData) => {
   const doc = new jsPDF('p', 'mm', 'a4');
-  const primaryColor = [37, 99, 235];
-  const secondaryColor = [241, 245, 249];
+  const headerColor = [220, 224, 230]; // Gris claro profesional para tablas
+  const textColor = 0; // Negro
 
   const getTeacherName = (role) => {
-    const t = groupData.teachers_registry?.find(t => t.role === role);
-    return (t && t.full_name) ? String(t.full_name) : `Docente ${role}`;
+    if (role === 'tutor') return groupData.tutor_name || 'N/A';
+    if (role === 'guia') return groupData.guia_name || 'N/A';
+    if (role === 'revisor') return groupData.revisor_name || 'N/A';
+    return 'N/A';
   };
 
   const getTeacherPhone = (role) => {
@@ -19,14 +21,16 @@ export const generateReport = (groupData, evaluationData) => {
   // Titulo
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
+  doc.setTextColor(textColor);
   doc.text('Unidad Educativa Guayaquil', 105, 15, { align: 'center' });
+  doc.setFontSize(12);
   doc.text('Informe de Calificación de Estudio de Caso', 105, 22, { align: 'center' });
 
   // 1. Datos Informativos
   autoTable(doc, {
     startY: 30,
     theme: 'grid',
-    headStyles: { fillColor: primaryColor, textColor: 255 },
+    headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
     body: [
       ['Fecha de informe', new Date().toLocaleDateString(), 'Nº De informe', `18D02-UEG-2024-2025-${groupData.id.split('-')[1] || '01'}`]
     ]
@@ -37,11 +41,11 @@ export const generateReport = (groupData, evaluationData) => {
     startY: doc.lastAutoTable.finalY + 5,
     theme: 'grid',
     head: [['Funcionarios', 'Nombres', 'Contacto']],
-    headStyles: { fillColor: secondaryColor, textColor: 0 },
+    headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
     body: [
-      ['Docente Tutor', getTeacherName('tutor'), getTeacherPhone('tutor')],
-      ['Docente Guía', getTeacherName('guia'), getTeacherPhone('guia')],
-      ['Docente Revisor', getTeacherName('revisor'), getTeacherPhone('revisor')],
+      ['Docente Tutor', getTeacherName('tutor'), 'N/A'],
+      ['Docente Guía', getTeacherName('guia'), 'N/A'],
+      ['Docente Revisor', getTeacherName('revisor'), 'N/A'],
     ]
   });
 
@@ -50,7 +54,7 @@ export const generateReport = (groupData, evaluationData) => {
     startY: doc.lastAutoTable.finalY + 5,
     theme: 'grid',
     head: [['Informe dirigido a', 'Nombres', 'Cargo']],
-    headStyles: { fillColor: secondaryColor, textColor: 0 },
+    headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
     body: [
       ['Rector(a)', 'Msc. Roberto Galarza', 'Autoridad Institucional']
     ]
@@ -83,9 +87,11 @@ export const generateReport = (groupData, evaluationData) => {
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    const splitText = doc.splitTextToSize(text, 180);
-    doc.text(splitText, 14, currentY, { align: 'justify' });
-    currentY += (splitText.length * 4) + 5;
+    
+    // Mejorar la justificación de texto calculando las dimensiones reales
+    const dimensions = doc.getTextDimensions(text, { maxWidth: 180 });
+    doc.text(text, 14, currentY, { maxWidth: 180, align: 'justify' });
+    currentY += dimensions.h + 5;
   };
 
   printParagraph('1. ANTECEDENTES', 'De acuerdo con el Acuerdo Ministerial MINEDUC-MINEDUC-2023-00031-A, que establece los lineamientos para el desarrollo del Proyecto de Grado como proceso de evaluación final para los estudiantes de tercero de Bachillerato General Unificado (BGU), la Unidad Educativa Guayaquil ha implementado la modalidad de Estudio de Caso como estrategia para promover el pensamiento crítico, el trabajo colaborativo y la solución de problemas contextualizados.\n\nCon base en lo dispuesto en el numeral 6.3.1 de los "Lineamientos para la elaboración del Proyecto de Grado 2024-2025", se asignó a los estudiantes la ejecución de un proyecto práctico vinculado a su entorno institucional, un estudio de caso escrito que documente la problemática abordada, y una presentación oral que evidencie el dominio del tema y la comunicación efectiva.\n\nLas autoridades institucionales, en cumplimiento de lo establecido, conformaron la Comisión Calificadora encargada de evaluar los tres componentes del proyecto de manera integral, objetiva y bajo criterios técnicos establecidos por el Ministerio de Educación.');
@@ -137,7 +143,7 @@ export const generateReport = (groupData, evaluationData) => {
     startY: currentY + 5,
     theme: 'grid',
     head: [['', 'Estudiante', 'P. Práctico', 'P. Escrito', 'P. Oral', 'NOTA DE GRADO']],
-    headStyles: { fillColor: primaryColor, textColor: 255 },
+    headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
     body: resultsBody
   });
 
