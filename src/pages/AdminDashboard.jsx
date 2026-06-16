@@ -335,81 +335,103 @@ const AdminDashboard = () => {
                           <button className="btn btn-secondary" onClick={() => setConfiguringGroupId(null)}>Cancelar</button>
                         </div>
                       ) : (
-                        <div style={{ fontSize: '0.9rem' }}>
-                          <div className="mb-3 p-3 rounded border-l-4" style={{ fontSize: '0.85rem', backgroundColor: 'var(--bg-surface-hover)', borderColor: 'var(--color-primary)' }}>
-                            {/* Tutor */}
-                            <div className="mb-1 flex items-center">
-                              {editingTeacherGroupId === group.id && editingTeacherRole === 'tutor' ? (
-                                <>
-                                  <input type="text" className="form-control p-1 text-sm h-8" value={editingTeacherName} onChange={e => setEditingTeacherName(e.target.value)} autoFocus />
-                                  <button className="btn btn-success p-1 h-8 ml-1" onClick={() => handleUpdateTeacher('tutor', group.id)}><CheckCircle size={14} /></button>
-                                  <button className="btn btn-secondary p-1 h-8 ml-1" onClick={handleCancelEditTeacher}><X size={14} /></button>
-                                </>
-                              ) : (
-                                <>
-                                  <strong className="text-primary" style={{width: '65px'}}>Tutor:</strong>
-                                  <span style={{fontWeight: 500}}>{group.tutor_name || 'N/A'}</span>
-                                  <button className="btn btn-link p-0 ml-2" onClick={() => { setEditingTeacherGroupId(group.id); setEditingTeacherRole('tutor'); setEditingTeacherName(group.tutor_name || ''); }} title="Editar Tutor"><Edit2 size={14} /></button>
-                                </>
-                              )}
-                            </div>
-                            {/* Guía */}
-                            <div className="mb-1 flex items-center">
-                              {editingTeacherGroupId === group.id && editingTeacherRole === 'guia' ? (
-                                <>
-                                  <input type="text" className="form-control p-1 text-sm h-8" value={editingTeacherName} onChange={e => setEditingTeacherName(e.target.value)} autoFocus />
-                                  <button className="btn btn-success p-1 h-8 ml-1" onClick={() => handleUpdateTeacher('guia', group.id)}><CheckCircle size={14} /></button>
-                                  <button className="btn btn-secondary p-1 h-8 ml-1" onClick={handleCancelEditTeacher}><X size={14} /></button>
-                                </>
-                              ) : (
-                                <>
-                                  <strong className="text-primary" style={{width: '65px'}}>Guía:</strong>
-                                  <span style={{fontWeight: 500}}>{group.guia_name || 'N/A'}</span>
-                                  <button className="btn btn-link p-0 ml-2" onClick={() => { setEditingTeacherGroupId(group.id); setEditingTeacherRole('guia'); setEditingTeacherName(group.guia_name || ''); }} title="Editar Guía"><Edit2 size={14} /></button>
-                                </>
-                              )}
-                            </div>
-                            {/* Revisor */}
-                            <div className="flex items-center">
-                              {editingTeacherGroupId === group.id && editingTeacherRole === 'revisor' ? (
-                                <>
-                                  <input type="text" className="form-control p-1 text-sm h-8" value={editingTeacherName} onChange={e => setEditingTeacherName(e.target.value)} autoFocus />
-                                  <button className="btn btn-success p-1 h-8 ml-1" onClick={() => handleUpdateTeacher('revisor', group.id)}><CheckCircle size={14} /></button>
-                                  <button className="btn btn-secondary p-1 h-8 ml-1" onClick={handleCancelEditTeacher}><X size={14} /></button>
-                                </>
-                              ) : (
-                                <>
-                                  <strong className="text-primary" style={{width: '65px'}}>Revisor:</strong>
-                                  <span style={{fontWeight: 500}}>{group.revisor_name || 'N/A'}</span>
-                                  <button className="btn btn-link p-0 ml-2" onClick={() => { setEditingTeacherGroupId(group.id); setEditingTeacherRole('revisor'); setEditingTeacherName(group.revisor_name || ''); }} title="Editar Revisor"><Edit2 size={14} /></button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          <div className="mb-1"><strong>Tema:</strong> {group.theme || 'No definido'}</div>
-
-                          {/* Plagio e IA editables */}
-                          {editingPercentGroupId === group.id ? (
-                            <div className="mt-2 flex flex-col gap-2">
-                              <div className="flex items-center gap-2">
-                                <label className="text-sm font-semibold" style={{width:'65px'}}>Plagio:</label>
-                                <input type="number" min="0" max="100" className="form-control p-1 text-sm h-8" value={editingPercents.plagiarism_percentage} onChange={e => setEditingPercents({...editingPercents, plagiarism_percentage: e.target.value})} />
-                                <span className="text-sm">%</span>
+                        <div style={{ fontSize: '0.88rem' }}>
+                          {/* ── Tarjeta de docentes ─────────────────────────────── */}
+                          <div className="rounded-lg mb-3" style={{ border: '1px solid var(--border-light)', overflow: 'hidden' }}>
+                            {[
+                              { role: 'tutor',   label: 'Tutor',   value: group.tutor_name },
+                              { role: 'guia',    label: 'Guía',    value: group.guia_name  },
+                              { role: 'revisor', label: 'Revisor', value: group.revisor_name },
+                            ].map(({ role, label, value }, idx, arr) => (
+                              <div key={role}
+                                className="flex items-center gap-2 px-3 py-2"
+                                style={{
+                                  borderBottom: idx < arr.length - 1 ? '1px solid var(--border-light)' : 'none',
+                                  backgroundColor: 'var(--bg-surface-hover)',
+                                }}
+                              >
+                                {editingTeacherGroupId === group.id && editingTeacherRole === role ? (
+                                  <>
+                                    <span className="text-primary font-semibold" style={{ minWidth: '52px', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+                                    <input
+                                      type="text"
+                                      className="form-control flex-1"
+                                      style={{ height: '28px', padding: '0 8px', fontSize: '0.85rem' }}
+                                      value={editingTeacherName}
+                                      onChange={e => setEditingTeacherName(e.target.value)}
+                                      onKeyDown={e => { if (e.key === 'Enter') handleUpdateTeacher(role, group.id); if (e.key === 'Escape') handleCancelEditTeacher(); }}
+                                      autoFocus
+                                    />
+                                    <button
+                                      onClick={() => handleUpdateTeacher(role, group.id)}
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-success)', padding: '2px' }}
+                                      title="Guardar"
+                                    ><CheckCircle size={16}/></button>
+                                    <button
+                                      onClick={handleCancelEditTeacher}
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-muted)', padding: '2px' }}
+                                      title="Cancelar"
+                                    ><X size={16}/></button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="text-primary font-semibold" style={{ minWidth: '52px', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+                                    <span className="flex-1" style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{value || <span className="text-muted italic">Sin asignar</span>}</span>
+                                    <button
+                                      onClick={() => { setEditingTeacherGroupId(group.id); setEditingTeacherRole(role); setEditingTeacherName(value || ''); }}
+                                      title={`Editar ${label}`}
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', padding: '2px', opacity: 0.5, borderRadius: '4px', transition: 'opacity 0.15s' }}
+                                      onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                      onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}
+                                    ><Edit2 size={13}/></button>
+                                  </>
+                                )}
                               </div>
-                              <div className="flex items-center gap-2">
-                                <label className="text-sm font-semibold" style={{width:'65px'}}>IA:</label>
-                                <input type="number" min="0" max="100" className="form-control p-1 text-sm h-8" value={editingPercents.ai_percentage} onChange={e => setEditingPercents({...editingPercents, ai_percentage: e.target.value})} />
-                                <span className="text-sm">%</span>
+                            ))}
+                          </div>
+
+                          {/* ── Tema ────────────────────────────────────────────── */}
+                          {group.theme && (
+                            <div className="mb-2 text-xs" style={{ color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                              <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>Tema: </span>{group.theme}
+                            </div>
+                          )}
+
+                          {/* ── Plagio / IA ──────────────────────────────────────── */}
+                          {editingPercentGroupId === group.id ? (
+                            <div className="rounded-lg p-3" style={{ border: '1px solid var(--border-focus)', backgroundColor: 'var(--bg-surface-hover)' }}>
+                              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Porcentajes de revisión</p>
+                              <div className="flex gap-2 mb-2">
+                                <div className="flex-1">
+                                  <label className="text-xs font-semibold text-danger block mb-1">% Plagio</label>
+                                  <input type="number" min="0" max="100" className="form-control w-full" style={{ height:'30px', fontSize:'0.85rem', padding:'0 8px' }}
+                                    value={editingPercents.plagiarism_percentage}
+                                    onChange={e => setEditingPercents({...editingPercents, plagiarism_percentage: e.target.value})} />
+                                </div>
+                                <div className="flex-1">
+                                  <label className="text-xs font-semibold text-warning block mb-1">% IA</label>
+                                  <input type="number" min="0" max="100" className="form-control w-full" style={{ height:'30px', fontSize:'0.85rem', padding:'0 8px' }}
+                                    value={editingPercents.ai_percentage}
+                                    onChange={e => setEditingPercents({...editingPercents, ai_percentage: e.target.value})} />
+                                </div>
                               </div>
                               <div className="flex gap-2">
-                                <button className="btn btn-success p-1 h-8 text-sm" onClick={() => handleSavePercentages(group.id)}><CheckCircle size={14}/> Guardar</button>
-                                <button className="btn btn-secondary p-1 h-8 text-sm" onClick={() => setEditingPercentGroupId(null)}><X size={14}/> Cancelar</button>
+                                <button className="btn btn-success flex-1" style={{ fontSize:'0.78rem', padding:'4px 8px', height:'28px' }} onClick={() => handleSavePercentages(group.id)}><CheckCircle size={12}/> Guardar</button>
+                                <button className="btn btn-secondary flex-1" style={{ fontSize:'0.78rem', padding:'4px 8px', height:'28px' }} onClick={() => setEditingPercentGroupId(null)}><X size={12}/> Cancelar</button>
                               </div>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2 mt-1">
-                              <span><strong>Plagio:</strong> <span className="text-danger">{group.plagiarism_percentage ?? 0}%</span> | <strong>IA:</strong> <span className="text-warning">{group.ai_percentage ?? 0}%</span></span>
-                              <button className="btn btn-link p-0" title="Editar porcentajes" onClick={() => { setEditingPercentGroupId(group.id); setEditingPercents({ plagiarism_percentage: group.plagiarism_percentage ?? 0, ai_percentage: group.ai_percentage ?? 0 }); }}><Edit2 size={14}/></button>
+                            <div className="flex items-center gap-3 rounded px-2 py-1" style={{ backgroundColor: 'var(--bg-surface-hover)', border: '1px solid var(--border-light)' }}>
+                              <span className="text-xs"><span className="font-semibold" style={{color:'var(--text-muted)'}}>Plagio:</span> <strong className="text-danger">{group.plagiarism_percentage ?? 0}%</strong></span>
+                              <span style={{ color: 'var(--border-light)' }}>|</span>
+                              <span className="text-xs"><span className="font-semibold" style={{color:'var(--text-muted)'}}>IA:</span> <strong className="text-warning">{group.ai_percentage ?? 0}%</strong></span>
+                              <button
+                                title="Editar porcentajes"
+                                onClick={() => { setEditingPercentGroupId(group.id); setEditingPercents({ plagiarism_percentage: group.plagiarism_percentage ?? 0, ai_percentage: group.ai_percentage ?? 0 }); }}
+                                style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', padding: '2px', opacity: 0.5, borderRadius: '4px', transition: 'opacity 0.15s' }}
+                                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                                onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}
+                              ><Edit2 size={12}/></button>
                             </div>
                           )}
                         </div>
