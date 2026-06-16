@@ -19,6 +19,10 @@ const AdminDashboard = () => {
   const [editingStudentName, setEditingStudentName] = useState('');
   const [addingToGroupId, setAddingToGroupId] = useState(null);
   const [newStudentName, setNewStudentName] = useState('');
+  // Estados para edición de docentes guía/tutor/revisor
+  const [editingTeacherGroupId, setEditingTeacherGroupId] = useState(null);
+  const [editingTeacherRole, setEditingTeacherRole] = useState(''); // 'tutor' | 'guia' | 'revisor'
+  const [editingTeacherName, setEditingTeacherName] = useState('');
   
   // Estado para modal de resumen
   const [summaryGroup, setSummaryGroup] = useState(null);
@@ -300,9 +304,54 @@ const AdminDashboard = () => {
                       ) : (
                         <div style={{ fontSize: '0.9rem' }}>
                           <div className="mb-3 p-3 rounded border-l-4" style={{ fontSize: '0.85rem', backgroundColor: 'var(--bg-surface-hover)', borderColor: 'var(--color-primary)' }}>
-                            <div className="mb-1 flex items-center"><strong className="text-primary" style={{width: '65px'}}>Tutor:</strong> <span style={{fontWeight: 500}}>{group.tutor_name || 'N/A'}</span></div>
-                            <div className="mb-1 flex items-center"><strong className="text-primary" style={{width: '65px'}}>Guía:</strong> <span style={{fontWeight: 500}}>{group.guia_name || 'N/A'}</span></div>
-                            <div className="flex items-center"><strong className="text-primary" style={{width: '65px'}}>Revisor:</strong> <span style={{fontWeight: 500}}>{group.revisor_name || 'N/A'}</span></div>
+                            {/* Tutor */}
+                            <div className="mb-1 flex items-center">
+                              {editingTeacherGroupId === group.id && editingTeacherRole === 'tutor' ? (
+                                <>
+                                  <input type="text" className="form-control p-1 text-sm h-8" value={editingTeacherName} onChange={e => setEditingTeacherName(e.target.value)} autoFocus />
+                                  <button className="btn btn-success p-1 h-8 ml-1" onClick={() => handleUpdateTeacher('tutor', group.id)}><CheckCircle size={14} /></button>
+                                  <button className="btn btn-secondary p-1 h-8 ml-1" onClick={handleCancelEditTeacher}><X size={14} /></button>
+                                </>
+                              ) : (
+                                <>
+                                  <strong className="text-primary" style={{width: '65px'}}>Tutor:</strong>
+                                  <span style={{fontWeight: 500}}>{group.tutor_name || 'N/A'}</span>
+                                  <button className="btn btn-link p-0 ml-2" onClick={() => { setEditingTeacherGroupId(group.id); setEditingTeacherRole('tutor'); setEditingTeacherName(group.tutor_name || ''); }} title="Editar Tutor"><Edit2 size={14} /></button>
+                                </>
+                              )}
+                            </div>
+                            {/* Guía */}
+                            <div className="mb-1 flex items-center">
+                              {editingTeacherGroupId === group.id && editingTeacherRole === 'guia' ? (
+                                <>
+                                  <input type="text" className="form-control p-1 text-sm h-8" value={editingTeacherName} onChange={e => setEditingTeacherName(e.target.value)} autoFocus />
+                                  <button className="btn btn-success p-1 h-8 ml-1" onClick={() => handleUpdateTeacher('guia', group.id)}><CheckCircle size={14} /></button>
+                                  <button className="btn btn-secondary p-1 h-8 ml-1" onClick={handleCancelEditTeacher}><X size={14} /></button>
+                                </>
+                              ) : (
+                                <>
+                                  <strong className="text-primary" style={{width: '65px'}}>Guía:</strong>
+                                  <span style={{fontWeight: 500}}>{group.guia_name || 'N/A'}</span>
+                                  <button className="btn btn-link p-0 ml-2" onClick={() => { setEditingTeacherGroupId(group.id); setEditingTeacherRole('guia'); setEditingTeacherName(group.guia_name || ''); }} title="Editar Guía"><Edit2 size={14} /></button>
+                                </>
+                              )}
+                            </div>
+                            {/* Revisor */}
+                            <div className="flex items-center">
+                              {editingTeacherGroupId === group.id && editingTeacherRole === 'revisor' ? (
+                                <>
+                                  <input type="text" className="form-control p-1 text-sm h-8" value={editingTeacherName} onChange={e => setEditingTeacherName(e.target.value)} autoFocus />
+                                  <button className="btn btn-success p-1 h-8 ml-1" onClick={() => handleUpdateTeacher('revisor', group.id)}><CheckCircle size={14} /></button>
+                                  <button className="btn btn-secondary p-1 h-8 ml-1" onClick={handleCancelEditTeacher}><X size={14} /></button>
+                                </>
+                              ) : (
+                                <>
+                                  <strong className="text-primary" style={{width: '65px'}}>Revisor:</strong>
+                                  <span style={{fontWeight: 500}}>{group.revisor_name || 'N/A'}</span>
+                                  <button className="btn btn-link p-0 ml-2" onClick={() => { setEditingTeacherGroupId(group.id); setEditingTeacherRole('revisor'); setEditingTeacherName(group.revisor_name || ''); }} title="Editar Revisor"><Edit2 size={14} /></button>
+                                </>
+                              )}
+                            </div>
                           </div>
                           <div className="mb-1"><strong>Tema:</strong> {group.theme || 'No definido'}</div>
                           <div><strong>Plagio:</strong> <span className="text-danger">{group.plagiarism_percentage}%</span> | <strong>IA:</strong> <span className="text-warning">{group.ai_percentage}%</span></div>
