@@ -27,8 +27,14 @@ const AdminDashboard = () => {
   // Estado para modal de resumen
   const [summaryGroup, setSummaryGroup] = useState(null);
 
+
+  // Estado para modal de resumen
   // Estado para las calificaciones prácticas
   const [practicalScores, setPracticalScores] = useState({}); // { studentId: score }
+
+  // Estado para edición inline de porcentajes
+  const [editingPercentGroupId, setEditingPercentGroupId] = useState(null);
+  const [editingPercents, setEditingPercents] = useState({ plagiarism_percentage: 0, ai_percentage: 0 });
   
   const fetchGroups = async () => {
     setLoading(true);
@@ -167,6 +173,33 @@ const AdminDashboard = () => {
       setNewStudentName('');
       fetchGroups();
     } catch(e) { alert("Error añadiendo: " + e.message); }
+  };
+
+  // ── Handlers para editar nombre de docentes ──────────────────────────
+  const handleCancelEditTeacher = () => {
+    setEditingTeacherGroupId(null);
+    setEditingTeacherRole('');
+    setEditingTeacherName('');
+  };
+
+  const handleUpdateTeacher = async (role, groupId) => {
+    if (!editingTeacherName.trim()) return handleCancelEditTeacher();
+    const column = `${role}_name`;
+    const { error } = await supabase.from('groups').update({ [column]: editingTeacherName.trim() }).eq('id', groupId);
+    if (error) alert('Error al guardar docente: ' + error.message);
+    else fetchGroups();
+    handleCancelEditTeacher();
+  };
+
+  // ── Handlers para editar porcentajes de plagio/IA ─────────────────────
+  const handleSavePercentages = async (groupId) => {
+    const { error } = await supabase.from('groups').update({
+      plagiarism_percentage: editingPercents.plagiarism_percentage,
+      ai_percentage: editingPercents.ai_percentage,
+    }).eq('id', groupId);
+    if (error) alert('Error al guardar porcentajes: ' + error.message);
+    else fetchGroups();
+    setEditingPercentGroupId(null);
   };
 
   const calculateWrittenAvg = (evaluation) => {
@@ -354,7 +387,31 @@ const AdminDashboard = () => {
                             </div>
                           </div>
                           <div className="mb-1"><strong>Tema:</strong> {group.theme || 'No definido'}</div>
-                          <div><strong>Plagio:</strong> <span className="text-danger">{group.plagiarism_percentage}%</span> | <strong>IA:</strong> <span className="text-warning">{group.ai_percentage}%</span></div>
+
+                          {/* Plagio e IA editables */}
+                          {editingPercentGroupId === group.id ? (
+                            <div className="mt-2 flex flex-col gap-2">
+                              <div className="flex items-center gap-2">
+                                <label className="text-sm font-semibold" style={{width:'65px'}}>Plagio:</label>
+                                <input type="number" min="0" max="100" className="form-control p-1 text-sm h-8" value={editingPercents.plagiarism_percentage} onChange={e => setEditingPercents({...editingPercents, plagiarism_percentage: e.target.value})} />
+                                <span className="text-sm">%</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <label className="text-sm font-semibold" style={{width:'65px'}}>IA:</label>
+                                <input type="number" min="0" max="100" className="form-control p-1 text-sm h-8" value={editingPercents.ai_percentage} onChange={e => setEditingPercents({...editingPercents, ai_percentage: e.target.value})} />
+                                <span className="text-sm">%</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <button className="btn btn-success p-1 h-8 text-sm" onClick={() => handleSavePercentages(group.id)}><CheckCircle size={14}/> Guardar</button>
+                                <button className="btn btn-secondary p-1 h-8 text-sm" onClick={() => setEditingPercentGroupId(null)}><X size={14}/> Cancelar</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 mt-1">
+                              <span><strong>Plagio:</strong> <span className="text-danger">{group.plagiarism_percentage ?? 0}%</span> | <strong>IA:</strong> <span className="text-warning">{group.ai_percentage ?? 0}%</span></span>
+                              <button className="btn btn-link p-0" title="Editar porcentajes" onClick={() => { setEditingPercentGroupId(group.id); setEditingPercents({ plagiarism_percentage: group.plagiarism_percentage ?? 0, ai_percentage: group.ai_percentage ?? 0 }); }}><Edit2 size={14}/></button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </td>
