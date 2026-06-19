@@ -280,7 +280,7 @@ export const generateReport = (groupData, evaluationData) => {
   printParagraph('6. RECOMENDACIONES', 'Con base en los hallazgos del proceso de evaluación, se recomienda fortalecer la continuidad de proyectos prácticos como mecanismo para desarrollar competencias integradas en los estudiantes. Se sugiere reforzar el acompañamiento docente en la planificación, redacción y revisión de los estudios de caso escritos, asegurando que los estudiantes cuenten con una guía efectiva durante todo el proceso.');
 
   // Firmas
-  if (currentY > 170) {
+  if (currentY > 155) {
     doc.addPage();
     currentY = 20;
   }
@@ -319,13 +319,19 @@ export const generateReport = (groupData, evaluationData) => {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.text('AUTORIZACIÓN, APROBACIÓN Y RECEPCIÓN', 14, currentY);
-  currentY += 15;
+  currentY += 10;
+
+  // Textos explicativos superiores
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Revisado y aprobado por:', 60, currentY, { align: 'center' });
+  doc.text('Recibido por:', 150, currentY, { align: 'center' });
+
+  // Espacio para la firma (20mm)
+  currentY += 20;
 
   // Fila de Autoridades (2 columnas simétricas)
   // Vicerrectora
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.text('Revisado y aprobado por:', 60, currentY - 4, { align: 'center' });
   doc.line(35, currentY, 85, currentY);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
@@ -334,9 +340,6 @@ export const generateReport = (groupData, evaluationData) => {
   doc.text('Vicerrectora (E)', 60, currentY + 10, { align: 'center' });
 
   // Rector
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.text('Recibido por:', 150, currentY - 4, { align: 'center' });
   doc.line(125, currentY, 175, currentY);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
