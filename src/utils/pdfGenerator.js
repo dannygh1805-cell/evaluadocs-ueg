@@ -280,55 +280,56 @@ export const generateReport = (groupData, evaluationData) => {
   printParagraph('6. RECOMENDACIONES', 'Con base en los hallazgos del proceso de evaluación, se recomienda fortalecer la continuidad de proyectos prácticos como mecanismo para desarrollar competencias integradas en los estudiantes. Se sugiere reforzar el acompañamiento docente en la planificación, redacción y revisión de los estudios de caso escritos, asegurando que los estudiantes cuenten con una guía efectiva durante todo el proceso.');
 
   // Firmas
-  if (currentY > 230) {
+  if (currentY > 200) {
     doc.addPage();
     currentY = 20;
   }
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text('DESARROLLO DEL DOCUMENTO (Miembros de la Comisión Evaluación)', 14, currentY);
-  currentY += 25;
-
-  doc.line(20, currentY, 80, currentY);
-  doc.text(getTeacherName('tutor'), 50, currentY + 5, { align: 'center' });
-  doc.text('Docente Tutor', 50, currentY + 10, { align: 'center' });
-
-  doc.line(120, currentY, 180, currentY);
-  doc.text(getTeacherName('guia'), 150, currentY + 5, { align: 'center' });
-  doc.text('Docente Guía', 150, currentY + 10, { align: 'center' });
-
-  currentY += 30;
-
-  doc.line(70, currentY, 130, currentY);
-  doc.text(getTeacherName('revisor'), 100, currentY + 5, { align: 'center' });
-  doc.text('Docente Revisor', 100, currentY + 10, { align: 'center' });
-
-  // Vicerrectora (Revisado y aprobado por)
-  currentY += 25;
-  if (currentY > 230) {
-    doc.addPage();
-    currentY = 20;
-  }
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text('REVISADO Y APROBADO POR:', 14, currentY);
-  currentY += 20;
-  doc.line(70, currentY, 130, currentY);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Lic. Sonia Cuenca', 100, currentY + 5, { align: 'center' });
-  doc.setFont('helvetica', 'bold');
-  doc.text('Vicerrectora (E)', 100, currentY + 10, { align: 'center' });
-
-  // Espacio de recepción del Rector
-  currentY += 25;
-  if (currentY > 240) {
-    doc.addPage();
-    currentY = 20;
-  }
-  doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(0);
+  doc.text('DESARROLLO DEL DOCUMENTO (Miembros de la Comisión Evaluación)', 14, currentY);
+  currentY += 15;
+
+  // Fila de Comisión Calificadora (3 columnas simétricas)
+  // Tutor
+  doc.line(18, currentY, 68, currentY);
+  doc.setFont('helvetica', 'bold');
+  doc.text(getTeacherName('tutor'), 43, currentY + 5, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.text('Docente Tutor', 43, currentY + 10, { align: 'center' });
+
+  // Guía
+  doc.line(80, currentY, 130, currentY);
+  doc.setFont('helvetica', 'bold');
+  doc.text(getTeacherName('guia'), 105, currentY + 5, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.text('Docente Guía', 105, currentY + 10, { align: 'center' });
+
+  // Revisor
+  doc.line(142, currentY, 192, currentY);
+  doc.setFont('helvetica', 'bold');
+  doc.text(getTeacherName('revisor'), 167, currentY + 5, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.text('Docente Revisor', 167, currentY + 10, { align: 'center' });
+
+  currentY += 20;
+
+  // Vicerrectora (Revisado y aprobado por)
+  doc.setFont('helvetica', 'bold');
+  doc.text('REVISADO Y APROBADO POR:', 14, currentY);
+  currentY += 15;
+
+  doc.line(80, currentY, 130, currentY); // Centrado en la página
+  doc.setFont('helvetica', 'bold');
+  doc.text('Lic. Sonia Cuenca', 105, currentY + 5, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.text('Vicerrectora (E)', 105, currentY + 10, { align: 'center' });
+
+  currentY += 25;
+
+  // Espacio de recepción del Rector
+  doc.setFont('helvetica', 'normal');
   doc.text('Recibido por: ___________________________          Fecha: ___________________', 14, currentY);
   currentY += 8;
   doc.setFont('helvetica', 'bold');
