@@ -304,6 +304,22 @@ export const generateReport = (groupData, evaluationData) => {
   doc.text(getTeacherName('revisor'), 100, currentY + 5, { align: 'center' });
   doc.text('Docente Revisor', 100, currentY + 10, { align: 'center' });
 
+  // Vicerrectora (Revisado y aprobado por)
+  currentY += 25;
+  if (currentY > 230) {
+    doc.addPage();
+    currentY = 20;
+  }
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('REVISADO Y APROBADO POR:', 14, currentY);
+  currentY += 20;
+  doc.line(70, currentY, 130, currentY);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Lic. Sonia Cuenca', 100, currentY + 5, { align: 'center' });
+  doc.setFont('helvetica', 'bold');
+  doc.text('Vicerrectora (E)', 100, currentY + 10, { align: 'center' });
+
   // Espacio de recepción del Rector
   currentY += 25;
   if (currentY > 240) {
