@@ -58,7 +58,8 @@ export const generateReport = (groupData, evaluationData) => {
     theme: 'grid',
     headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
     body: [
-      ['Fecha de informe', new Date().toLocaleDateString(), 'Nº De informe', `18D02-UEG-V-2025-2026-${groupData.id.replace('G-', '')}`]
+      ['Fecha de informe', new Date().toLocaleDateString(), 'Nº De informe', `18D02-UEG-V-2025-2026-${groupData.id.replace('G-', '')}`],
+      ['Fecha de sustentación oral', { content: '[CONFIRMAR DD/MM/AAAA]', colSpan: 3 }]
     ]
   });
 
@@ -82,7 +83,7 @@ export const generateReport = (groupData, evaluationData) => {
     head: [['Informe dirigido a', 'Nombres', 'Cargo']],
     headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
     body: [
-      ['Rector(a)', 'Msc. Roberto Galarza', 'Autoridad Institucional']
+      ['Rector(a)', 'Mgs. [CONFIRMAR] Roberto Galarza', 'Autoridad Institucional']
     ]
   });
 
@@ -120,8 +121,8 @@ export const generateReport = (groupData, evaluationData) => {
     currentY += dimensions.h + 5;
   };
 
-  printParagraph('1. ANTECEDENTES', 'De acuerdo con el Acuerdo Ministerial MINEDUC-MINEDUC-2023-00031-A, que establece los lineamientos para el desarrollo del Proyecto de Grado como proceso de evaluación final para los estudiantes de tercero de Bachillerato General Unificado (BGU), la Unidad Educativa Guayaquil ha implementado la modalidad de Estudio de Caso como estrategia para promover el pensamiento crítico, el trabajo colaborativo y la solución de problemas contextualizados.\n\nCon base en lo dispuesto en el numeral 6.3.1 de los "Lineamientos para la elaboración del Proyecto de Grado 2024-2025", se asignó a los estudiantes la ejecución de un proyecto práctico vinculado a su entorno institucional, un estudio de caso escrito que documente la problemática abordada, y una presentación oral que evidencie el dominio del tema y la comunicación efectiva.\n\nLas autoridades institucionales, en cumplimiento de lo establecido, conformaron la Comisión Calificadora encargada de evaluar los tres componentes del proyecto de manera integral, objetiva y bajo criterios técnicos establecidos por el Ministerio de Educación.');
-  printParagraph('2. ALCANCE', 'Este informe está dirigido a la Mgs. Roberto Galarza, rector de la Unidad Educativa Guayaquil y tiene como objetivo presentar el proceso y los resultados de la evaluación integral del Proyecto de Grado desarrollado por los estudiantes de tercero de BGU, a través de la aplicación de la matriz de calificación correspondiente a cada componente del proyecto.');
+  printParagraph('1. ANTECEDENTES', 'De acuerdo con el Acuerdo Ministerial MINEDUC-MINEDUC-2024-00031-A, de 22 de mayo de 2024, que regula los procesos de evaluación educativa y organizacionales de las instituciones educativas del Sistema Nacional de Educación, y con el Instructivo de Evaluación Estudiantil vigente para el régimen Sierra-Amazonía [CONFIRMAR número/fecha de la edición 2025-2026], que en su anexo de Evaluación Final de Bachillerato establece los lineamientos para el desarrollo del Proyecto de Grado como proceso de evaluación final para los estudiantes de tercero de Bachillerato General Unificado (BGU), la Unidad Educativa Guayaquil ha implementado la modalidad de Estudio de Caso como estrategia para promover el pensamiento crítico, el trabajo colaborativo y la solución de problemas contextualizados.\n\nCon base en lo dispuesto en el numeral 6.3.1 de los "Lineamientos para la elaboración del Proyecto de Grado 2024-2025 (vigentes para el presente ciclo lectivo 2025-2026 salvo actualización ministerial específica — verificar)", se asignó a los estudiantes la ejecución de un proyecto práctico vinculado a su entorno institucional, un estudio de caso escrito que documente la problemática abordada, y una presentación oral que evidencie el dominio del tema y la comunicación efectiva.\n\nLas autoridades institucionales, en cumplimiento de lo establecido, conformaron la Comisión Calificadora encargada de evaluar los tres componentes del proyecto de manera integral, objetiva y bajo criterios técnicos establecidos por el Ministerio de Educación.');
+  printParagraph('2. ALCANCE', 'Este informe está dirigido a Mgs. [CONFIRMAR] Roberto Galarza, rector de la Unidad Educativa Guayaquil y tiene como objetivo presentar el proceso y los resultados de la evaluación integral del Proyecto de Grado desarrollado por los estudiantes de tercero de BGU, a través de la aplicación de la matriz de calificación correspondiente a cada componente del proyecto.');
   printParagraph('3. OBJETIVOS', '- Informar a la autoridad institucional sobre el proceso de evaluación del Proyecto de Grado.\n- Verificar el cumplimiento de los lineamientos establecidos por el Ministerio de Educación.\n- Emitir la calificación final con base en las evidencias del trabajo práctico, escrito y expositivo.');
   printParagraph('4. DESARROLLO O ANÁLISIS', 'Durante el proceso de evaluación del Proyecto de Grado, la Comisión Calificadora aplicó rúbricas específicas correspondientes a cada fase del proyecto: la parte práctica, el estudio de caso escrito y la exposición oral. Las calificaciones se asignaron en base a rúbricas previamente estructuradas con criterios objetivos y rangos de valoración que van del 1 al 10 por aspecto, tal como lo indican los lineamientos ministeriales. Este proceso permitió evaluar integralmente las competencias desarrolladas por los estudiantes en el transcurso del proyecto.');
 
@@ -191,7 +192,91 @@ export const generateReport = (groupData, evaluationData) => {
 
   currentY = doc.lastAutoTable.finalY + 10;
 
-  printParagraph('5. CONCLUSIONES', 'Luego de aplicar el proceso de evaluación integral, se concluye que los proyectos presentados por los estudiantes de tercero de Bachillerato reflejan un alto nivel de pertinencia y compromiso. La modalidad del estudio de caso permitió vincular la realidad institucional con soluciones prácticas. En términos generales, los estudiantes mostraron avances significativos en la elaboración del informe escrito y a nivel práctico evidenciaron comprensión clara del entorno.');
+  // Nota Metodológica
+  printParagraph('NOTA METODOLÓGICA', 'La Nota de Grado corresponde al promedio simple de los tres componentes evaluados (Parte Práctica, Parte Escrita y Parte Oral), conforme a los criterios de valoración establecidos en la normativa ministerial vigente.');
+
+  // Algoritmo de Conclusiones Dinámicas
+  const getQualitativeDescriptor = (score) => {
+    const val = Number(score);
+    if (val >= 9.00) return 'domina los aprendizajes requeridos (DAR)';
+    if (val >= 7.00) return 'alcanza los aprendizajes requeridos (AAR)';
+    if (val >= 4.01) return 'está próximo a alcanzar los aprendizajes requeridos (PAAR)';
+    return 'no alcanza los aprendizajes requeridos (NAAR)';
+  };
+
+  const studentResults = (groupData.students || []).map(student => {
+    const evW = groupData.evaluations_written || [];
+    let sumW = 0;
+    evW.forEach(e => {
+       const sumFields = Number(e.score_introduccion||0) + Number(e.score_antecedentes||0) + Number(e.score_definicion_problema||0) + Number(e.score_justificacion||0) + Number(e.score_objetivos||0) + Number(e.score_marco_conceptual||0) + Number(e.score_marco_metodologico||0) + Number(e.score_resultados||0) + Number(e.score_analisis||0) + Number(e.score_conclusiones||0) + Number(e.score_recomendaciones||0) + Number(e.score_referencias||0) + Number(e.score_anexos||0) + Number(e.score_formato||0);
+       sumW += (sumFields / 14);
+     });
+    const avgWrittenRaw = evW.length ? (sumW / evW.length) : 0;
+    const avgWritten = Math.max(0, avgWrittenRaw - penalty);
+
+    const evO = student.evaluations_oral || [];
+    let sumO = 0;
+    evO.forEach(e => {
+       const sumFields = Number(e.score_communication||0) + Number(e.score_knowledge||0) + Number(e.score_answers||0) + Number(e.score_time||0);
+       sumO += (sumFields / 4);
+     });
+    const avgOral = evO.length ? (sumO / evO.length) : 0;
+
+    const evP = student.evaluations_practical || [];
+    let sumP = 0;
+    evP.forEach(e => sumP += Number(e.final_score || 0));
+    const avgPractical = evP.length ? (sumP / evP.length) : 0.0;
+
+    const notaFinal = (avgWritten + avgOral + avgPractical) / 3;
+
+    return {
+      fullName: student.full_name || 'N/A',
+      avgWritten,
+      avgOral,
+      avgPractical,
+      notaFinal
+    };
+  });
+
+  const groupAvg = studentResults.length ? (studentResults.reduce((acc, s) => acc + s.notaFinal, 0) / studentResults.length) : 0;
+  const groupDescriptor = getQualitativeDescriptor(groupAvg);
+
+  const avgGroupWritten = studentResults.length ? (studentResults.reduce((acc, s) => acc + s.avgWritten, 0) / studentResults.length) : 0;
+  const avgGroupOral = studentResults.length ? (studentResults.reduce((acc, s) => acc + s.avgOral, 0) / studentResults.length) : 0;
+  const avgGroupPractical = studentResults.length ? (studentResults.reduce((acc, s) => acc + s.avgPractical, 0) / studentResults.length) : 0;
+
+  let lowestComponentLabel = '';
+  const minVal = Math.min(avgGroupWritten, avgGroupOral, avgGroupPractical);
+  if (minVal === avgGroupWritten) lowestComponentLabel = 'la Parte Escrita (Proyecto Escrito)';
+  else if (minVal === avgGroupOral) lowestComponentLabel = 'la Parte Oral (Defensa)';
+  else lowestComponentLabel = 'la Parte Práctica (Proyecto Práctico)';
+
+  const groupConclusion = `Con base en los resultados obtenidos, el curso ${groupData.course || 'N/A'}, (grupo) alcanzó un promedio de ${groupAvg.toFixed(2)} en la Nota de Grado, lo que evidencia que el grupo ${groupDescriptor}. El componente con menor desempeño relativo fue ${lowestComponentLabel}, por lo que se recomienda reforzar este aspecto en futuras generaciones.`;
+
+  const individualConclusions = studentResults.map(s => {
+    const components = [
+      { label: 'la parte práctica (Proyecto Práctico)', val: s.avgPractical },
+      { label: 'el componente escrito (Proyecto Escrito)', val: s.avgWritten },
+      { label: 'la defensa oral (Exposición)', val: s.avgOral }
+    ];
+    components.sort((a, b) => b.val - a.val);
+    const bestComponent = components[0].label;
+    const worstComponent = components[2].label;
+    const diff = components[0].val - components[2].val;
+    
+    let txt = `${s.fullName} obtuvo una Nota de Grado de ${s.notaFinal.toFixed(2)}, lo cual indica que ${getQualitativeDescriptor(s.notaFinal)}. Su mejor desempeño se registró en ${bestComponent};`;
+    if (diff >= 1.0) {
+      txt += ` se sugiere reforzar ${worstComponent}.`;
+    } else {
+      txt += ` manteniéndose un rendimiento equilibrado en los demás componentes.`;
+    }
+    return txt;
+  }).join('\n\n');
+
+  const finalConclusionsText = `${groupConclusion}\n\n${individualConclusions}`;
+
+  printParagraph('5. CONCLUSIONES', finalConclusionsText);
+
   printParagraph('6. RECOMENDACIONES', 'Con base en los hallazgos del proceso de evaluación, se recomienda fortalecer la continuidad de proyectos prácticos como mecanismo para desarrollar competencias integradas en los estudiantes. Se sugiere reforzar el acompañamiento docente en la planificación, redacción y revisión de los estudios de caso escritos, asegurando que los estudiantes cuenten con una guía efectiva durante todo el proceso.');
 
   // Firmas
@@ -218,6 +303,20 @@ export const generateReport = (groupData, evaluationData) => {
   doc.line(70, currentY, 130, currentY);
   doc.text(getTeacherName('revisor'), 100, currentY + 5, { align: 'center' });
   doc.text('Docente Revisor', 100, currentY + 10, { align: 'center' });
+
+  // Espacio de recepción del Rector
+  currentY += 25;
+  if (currentY > 240) {
+    doc.addPage();
+    currentY = 20;
+  }
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(0);
+  doc.text('Recibido por: ___________________________          Fecha: ___________________', 14, currentY);
+  currentY += 8;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Mgs. [CONFIRMAR] Roberto Galarza — Rector(a)', 14, currentY);
 
   const courseStr = (groupData.course || '').replace(/ /g, '_').toUpperCase();
   const surnames = groupData.students ? groupData.students.map(s => s.full_name.split(' ')[0].toUpperCase()).join('_') : 'ESTUDIANTES';
