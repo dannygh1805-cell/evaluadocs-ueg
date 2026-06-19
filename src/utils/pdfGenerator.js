@@ -44,10 +44,13 @@ export const generateReport = (groupData, evaluationData) => {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(30, 58, 138); // Azul oscuro
-  doc.text('Unidad Educativa Guayaquil', 105, 14, { align: 'center' });
-  doc.setFontSize(12);
+  doc.text('Unidad Educativa Guayaquil', 105, 12, { align: 'center' });
+  doc.setFontSize(11);
   doc.setTextColor(textColor);
-  doc.text('Informe de Calificación de Estudio de Caso', 105, 21, { align: 'center' });
+  doc.text('Informe de Calificación de Estudio de Caso', 105, 18, { align: 'center' });
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Año Lectivo: 2025 - 2026', 105, 23, { align: 'center' });
 
   // 1. Datos Informativos
   autoTable(doc, {
@@ -66,9 +69,9 @@ export const generateReport = (groupData, evaluationData) => {
     head: [['Funcionarios', 'Nombres', 'Contacto']],
     headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
     body: [
-      ['Docente Tutor', getTeacherName('tutor'), 'N/A'],
-      ['Docente Guía', getTeacherName('guia'), 'N/A'],
-      ['Docente Revisor', getTeacherName('revisor'), 'N/A'],
+      ['Docente Tutor', getTeacherName('tutor'), getTeacherPhone('tutor')],
+      ['Docente Guía', getTeacherName('guia'), getTeacherPhone('guia')],
+      ['Docente Revisor', getTeacherName('revisor'), getTeacherPhone('revisor')],
     ]
   });
 
@@ -90,7 +93,7 @@ export const generateReport = (groupData, evaluationData) => {
     theme: 'grid',
     body: [
       ['TEMA', { content: groupData.theme || 'Estudio de Caso 2024-2025', colSpan: 2 }],
-      ['CURSO', { content: '3 BGU A', colSpan: 2 }],
+      ['CURSO', { content: groupData.course || 'N/A', colSpan: 2 }],
       ...studentsBody
     ]
   });

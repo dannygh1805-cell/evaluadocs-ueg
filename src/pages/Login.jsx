@@ -22,7 +22,7 @@ const Login = () => {
     setLoading(true);
     const { data, error: fetchError } = await supabase
       .from('groups')
-      .select('id, course, evaluations_written(status), teachers_registry(role, full_name)')
+      .select('id, course, tutor_name, guia_name, revisor_name, evaluations_written(status), teachers_registry(role, full_name)')
       .eq('evaluation_status', 'in_progress');
     if (!fetchError && data) {
       const pendingGroups = data.filter(g => {
@@ -55,11 +55,20 @@ const Login = () => {
     try {
       localStorage.setItem('userRole', selectedRole);
       localStorage.setItem('groupId', currentGroup.id);
+
+      let actualName = '';
+      if (selectedRole === 'tutor') actualName = currentGroup.tutor_name;
+      else if (selectedRole === 'guia') actualName = currentGroup.guia_name;
+      else if (selectedRole === 'revisor') actualName = currentGroup.revisor_name;
+      
+      if (!actualName) {
+        actualName = `Docente ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}`;
+      }
       
       await supabase.from('teachers_registry').upsert({
         group_id: currentGroup.id,
         role: selectedRole,
-        full_name: `Docente ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}`,
+        full_name: actualName,
         cedula: 'N/A',
         cellphone: 'N/A',
         created_at: new Date()

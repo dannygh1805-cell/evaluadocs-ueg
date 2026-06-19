@@ -16,8 +16,6 @@ const EvaluationPanel = () => {
   const [view, setView] = useState('evaluation'); // 'evaluation' | 'summary'
   
   const [fillValue, setFillValue] = useState('');
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState('');
 
   // 14 Parámetros del Proyecto Escrito
   const initialWrittenScores = {
@@ -33,12 +31,74 @@ const EvaluationPanel = () => {
 
   const [oralScores, setOralScores] = useState({}); // { studentId: { communication:0, knowledge:0, answers:0, time:0 } }
   
+  // Estados para el contacto del docente
+  const [teacherCellphone, setTeacherCellphone] = useState('');
+  const [hasPhone, setHasPhone] = useState(true); // Inicializado en true para no parpadear antes de cargar
+  const [phoneInput, setPhoneInput] = useState('');
+  const [isSavingPhone, setIsSavingPhone] = useState(false);
+  
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       // Get Group
       const { data: gData } = await supabase.from('groups').select('*').eq('id', groupId).single();
-      if (gData) setGroupData(gData);
+      if (gData) {
+        setGroupData(gData);
+
+        // Determinar el nombre real del docente según su rol actual
+        let teacherName = '';
+        if (role === 'tutor') teacherName = gData.tutor_name;
+        else if (role === 'guia') teacherName = gData.guia_name;
+        else if (role === 'revisor') teacherName = gData.revisor_name;
+
+        if (teacherName) {
+          // Obtener el registro actual
+          const { data: currentReg } = await supabase.from('teachers_registry')
+            .select('*')
+            .eq('group_id', groupId)
+            .eq('role', role)
+            .maybeSingle();
+
+          const currentPhone = currentReg?.cellphone;
+          const currentFullName = currentReg?.full_name;
+
+          // Si el nombre en el registro es genérico, actualizarlo con el real
+          if (currentReg && (!currentFullName || currentFullName.startsWith('Docente '))) {
+            await supabase.from('teachers_registry')
+              .update({ full_name: teacherName })
+              .eq('id', currentReg.id);
+          }
+
+          if (!currentPhone || currentPhone === 'N/A' || currentPhone.trim() === '') {
+            // Buscar si ya ingresó su teléfono en algún grupo previo
+            const { data: existingRegs } = await supabase.from('teachers_registry')
+              .select('cellphone')
+              .eq('full_name', teacherName)
+              .neq('cellphone', 'N/A')
+              .neq('cellphone', '')
+              .not('cellphone', 'is', null)
+              .order('created_at', { ascending: false });
+
+            if (existingRegs && existingRegs.length > 0) {
+              const autofilledPhone = existingRegs[0].cellphone;
+              // Auto-llenar en la base de datos
+              await supabase.from('teachers_registry')
+                .update({ cellphone: autofilledPhone, full_name: teacherName })
+                .eq('group_id', groupId)
+                .eq('role', role);
+              
+              setTeacherCellphone(autofilledPhone);
+              setHasPhone(true);
+            } else {
+              setTeacherCellphone('');
+              setHasPhone(false);
+            }
+          } else {
+            setTeacherCellphone(currentPhone);
+            setHasPhone(true);
+          }
+        }
+      }
 
       // Get Students
       const { data: sData } = await supabase.from('students').select('*, evaluations_practical(*)').eq('group_id', groupId);
@@ -173,21 +233,6 @@ const EvaluationPanel = () => {
 
   const handleSaveInit = async () => {
     if (!validateForm()) return;
-    
-    // Verificar si falta el contacto
-    try {
-      const { data: teacher } = await supabase.from('teachers_registry')
-        .select('cellphone')
-        .eq('group_id', groupId)
-        .eq('role', role)
-        .single();
-        
-      if (!teacher || !teacher.cellphone || teacher.cellphone.toString().trim() === '') {
-        setShowPhoneModal(true);
-        return;
-      }
-    } catch (e) {}
-
     finalizeSave();
   };
 
@@ -220,17 +265,35 @@ const EvaluationPanel = () => {
     }
   };
 
-  const submitPhoneAndSave = async () => {
-    if (!phoneNumber || phoneNumber.length < 9) {
+  const handleSavePhone = async (e) => {
+    e.preventDefault();
+    if (!phoneInput.trim() || phoneInput.trim().length < 9) {
       alert("Por favor ingrese un número de teléfono válido (mínimo 9 dígitos).");
       return;
     }
+
+    setIsSavingPhone(true);
     try {
-      await supabase.from('teachers_registry').update({ cellphone: phoneNumber }).eq('group_id', groupId).eq('role', role);
-      setShowPhoneModal(false);
-      finalizeSave();
-    } catch (e) {
-      alert("Error al guardar teléfono: " + e.message);
+      let teacherName = '';
+      if (role === 'tutor') teacherName = groupData?.tutor_name;
+      else if (role === 'guia') teacherName = groupData?.guia_name;
+      else if (role === 'revisor') teacherName = groupData?.revisor_name;
+
+      const { error } = await supabase.from('teachers_registry')
+        .update({ cellphone: phoneInput.trim(), full_name: teacherName || `Docente ${role}` })
+        .eq('group_id', groupId)
+        .eq('role', role);
+
+      if (error) {
+        alert("Error al registrar teléfono: " + error.message);
+      } else {
+        setTeacherCellphone(phoneInput.trim());
+        setHasPhone(true);
+      }
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      setIsSavingPhone(false);
     }
   };
 
@@ -251,6 +314,37 @@ const EvaluationPanel = () => {
   };
 
   if (loading) return <div className="p-8 text-center">Cargando rúbrica para el grupo {groupId}...</div>;
+
+  if (!hasPhone) {
+    return (
+      <div className="animate-fade-in flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="surface p-8 text-center" style={{ maxWidth: '500px', width: '100%' }}>
+          <h2 className="h2 text-primary mb-4">Registro de Contacto</h2>
+          <p className="text-muted mb-6">
+            Estimado docente, para poder firmar y registrar sus calificaciones en el informe final, por favor ingrese su número celular de contacto. <strong>Solo se le solicitará esta única vez.</strong>
+          </p>
+          <form onSubmit={handleSavePhone} className="space-y-4 text-left">
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label font-semibold">Número de Celular</label>
+              <input
+                type="text"
+                required
+                placeholder="Ej: 0987654321"
+                className="form-control text-lg text-center"
+                value={phoneInput}
+                onChange={e => setPhoneInput(e.target.value)}
+                style={{ letterSpacing: '0.05em' }}
+                autoFocus
+              />
+            </div>
+            <button type="submit" className="btn btn-primary w-full py-3 text-md font-bold" disabled={isSavingPhone}>
+              {isSavingPhone ? 'Guardando...' : 'Confirmar y Registrarse'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   if (teachersCount < 3) {
     return (
@@ -316,26 +410,6 @@ const EvaluationPanel = () => {
 
   return (
     <div className="animate-fade-in relative">
-      {/* Phone Modal */}
-      {showPhoneModal && createPortal(
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div className="surface p-8" style={{ maxWidth: '400px', width: '90%', backgroundColor: 'var(--bg-surface)', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-            <h3 className="h3 mb-4 text-primary">Información de Contacto</h3>
-            <p className="text-muted mb-4">Para finalizar la evaluación, por favor proporciona un número telefónico de contacto en caso de auditorías.</p>
-            <input 
-              type="text" 
-              placeholder="Ej: 0987654321" 
-              className="form-control mb-4" 
-              value={phoneNumber} 
-              onChange={e => setPhoneNumber(e.target.value)}
-            />
-            <div className="flex gap-2 justify-end">
-              <button className="btn btn-secondary" onClick={() => setShowPhoneModal(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={submitPhoneAndSave}>Guardar y Enviar</button>
-            </div>
-          </div>
-        </div>
-      , document.body)}
 
       <div className="mb-8 surface" style={{ borderLeft: '4px solid var(--primary-color)' }}>
         <h1 className="h2 mb-1">Evaluación del Grupo: <span className="text-primary">{groupId}</span></h1>

@@ -54,7 +54,7 @@ const AdminDashboard = () => {
       .from('groups')
       .select(`
         *,
-        teachers_registry(role),
+        teachers_registry(*),
         students(id, full_name, evaluations_oral(*), evaluations_practical(*)),
         evaluations_written(*)
       `)
