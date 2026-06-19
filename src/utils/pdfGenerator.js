@@ -4,6 +4,7 @@ import { selloBase64 } from '../assets/selloBase64';
 
 export const generateReport = (groupData, evaluationData) => {
   const doc = new jsPDF('p', 'mm', 'a4');
+  doc.setLineHeightFactor(1.35);
   const headerColor = [220, 224, 230]; // Gris claro profesional para tablas
   const textColor = 0; // Negro
 
