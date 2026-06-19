@@ -103,7 +103,13 @@ const AdminDashboard = () => {
       .order('id');
       
     if (!groupsError && groupsData) {
-      groupsData.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
+      groupsData.sort((a, b) => {
+        const completedA = a.evaluations_written?.filter(e => e.status === 'completed').length === 3;
+        const completedB = b.evaluations_written?.filter(e => e.status === 'completed').length === 3;
+        if (completedA && !completedB) return 1;
+        if (!completedA && completedB) return -1;
+        return a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' });
+      });
       
       if (groupsRef.current && groupsRef.current.length > 0 && silent) {
         detectNewEvaluations(groupsRef.current, groupsData);
@@ -127,10 +133,33 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchGroups();
+
+    // Suscribirse a cambios en tiempo real en Supabase para actualizaciones instantáneas
+    const channel = supabase
+      .channel('admin-realtime-dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'evaluations_written' }, () => {
+        fetchGroups(true);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'teachers_registry' }, () => {
+        fetchGroups(true);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'groups' }, () => {
+        fetchGroups(true);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, () => {
+        fetchGroups(true);
+      })
+      .subscribe();
+
+    // Polling de respaldo cada 20 segundos
     const interval = setInterval(() => {
       fetchGroups(true);
-    }, 12000);
-    return () => clearInterval(interval);
+    }, 20000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
   }, []);
 
   const handleStartConfig = (group) => {
