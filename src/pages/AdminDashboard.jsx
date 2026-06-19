@@ -35,6 +35,18 @@ const AdminDashboard = () => {
   // Estado para edición inline de porcentajes
   const [editingPercentGroupId, setEditingPercentGroupId] = useState(null);
   const [editingPercents, setEditingPercents] = useState({ plagiarism_percentage: 0, ai_percentage: 0 });
+
+  // Estado para creación de nuevos grupos
+  const [isAddGroupModalOpen, setIsAddGroupModalOpen] = useState(false);
+  const [isSavingGroup, setIsSavingGroup] = useState(false);
+  const [newGroupData, setNewGroupData] = useState({
+    id: '',
+    course: '',
+    theme: 'Estudio de Caso 2024-2025',
+    tutor_name: '',
+    guia_name: '',
+    revisor_name: ''
+  });
   
   const fetchGroups = async () => {
     setLoading(true);
@@ -202,6 +214,55 @@ const AdminDashboard = () => {
     setEditingPercentGroupId(null);
   };
 
+  const handleAddGroup = async (e) => {
+    e.preventDefault();
+    if (!newGroupData.id.trim() || !newGroupData.course.trim()) {
+      alert("El ID del Grupo y el Curso son obligatorios.");
+      return;
+    }
+
+    const groupIdClean = newGroupData.id.trim().toUpperCase();
+
+    // Validar si ya existe
+    if (groups.some(g => g.id.toLowerCase() === groupIdClean.toLowerCase())) {
+      alert(`El grupo "${groupIdClean}" ya existe.`);
+      return;
+    }
+
+    setIsSavingGroup(true);
+    try {
+      const { error } = await supabase.from('groups').insert({
+        id: groupIdClean,
+        course: newGroupData.course.trim(),
+        theme: newGroupData.theme.trim() || 'Estudio de Caso 2024-2025',
+        tutor_name: newGroupData.tutor_name.trim() || 'Sin asignar',
+        guia_name: newGroupData.guia_name.trim() || 'Sin asignar',
+        revisor_name: newGroupData.revisor_name.trim() || 'Sin asignar',
+        evaluation_status: 'pending'
+      });
+
+      if (error) {
+        alert("Error al guardar en base de datos: " + error.message);
+      } else {
+        alert("Grupo creado con éxito.");
+        setIsAddGroupModalOpen(false);
+        setNewGroupData({
+          id: '',
+          course: '',
+          theme: 'Estudio de Caso 2024-2025',
+          tutor_name: '',
+          guia_name: '',
+          revisor_name: ''
+        });
+        fetchGroups();
+      }
+    } catch (e) {
+      alert("Error: " + e.message);
+    } finally {
+      setIsSavingGroup(false);
+    }
+  };
+
   const calculateWrittenAvg = (evaluation) => {
     if(!evaluation) return 0;
     const scores = [
@@ -261,14 +322,22 @@ const AdminDashboard = () => {
               <Users size={20} className="text-primary" />
               Control de Acceso a Evaluación ({groups.length} Grupos)
             </h2>
-            <input 
-              type="text" 
-              className="form-control" 
-              placeholder="🔍 Buscar por grupo, curso o estudiante..." 
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              style={{ maxWidth: '350px' }}
-            />
+            <div className="flex items-center gap-3">
+              <input 
+                type="text" 
+                className="form-control" 
+                placeholder="🔍 Buscar por grupo, curso o estudiante..." 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                style={{ maxWidth: '280px' }}
+              />
+              <button 
+                className="btn btn-primary flex items-center gap-2"
+                onClick={() => setIsAddGroupModalOpen(true)}
+              >
+                <Plus size={18} /> Añadir Grupo
+              </button>
+            </div>
           </div>
           
           <div className="table-container">
@@ -632,6 +701,103 @@ const AdminDashboard = () => {
             <div className="mt-6 text-right">
               <button className="btn btn-primary" onClick={() => setSummaryGroup(null)}>Cerrar Resumen</button>
             </div>
+          </div>
+        </div>
+      , document.body)}
+
+      {/* Modal de Añadir Grupo */}
+      {isAddGroupModalOpen && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
+          <div className="surface p-6 overflow-y-auto max-h-[90vh]" style={{ width: '100%', maxWidth: '550px', backgroundColor: 'var(--bg-surface)', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="h2 text-primary m-0 flex items-center gap-2" style={{ fontSize: '1.5rem', marginBottom: 0 }}>
+                <Plus size={24} /> Crear Nuevo Grupo de Revisión
+              </h2>
+              <button onClick={() => setIsAddGroupModalOpen(false)} className="btn btn-secondary p-2" style={{ border: 'none', background: 'none' }}><X size={20}/></button>
+            </div>
+
+            <form onSubmit={handleAddGroup} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label font-semibold">ID del Grupo *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej: G-C2"
+                    className="form-control"
+                    value={newGroupData.id}
+                    onChange={e => setNewGroupData({ ...newGroupData, id: e.target.value })}
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label font-semibold">Curso / Paralelo *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej: 3 BGU C"
+                    className="form-control"
+                    value={newGroupData.course}
+                    onChange={e => setNewGroupData({ ...newGroupData, course: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label font-semibold">Tema de Investigación (Estudio de Caso)</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Análisis del impacto digital..."
+                  className="form-control"
+                  value={newGroupData.theme}
+                  onChange={e => setNewGroupData({ ...newGroupData, theme: e.target.value })}
+                />
+              </div>
+
+              <hr style={{ border: 'none', borderTop: '1px solid var(--border-light)', margin: '1.5rem 0' }} />
+              <h3 className="h3" style={{ fontSize: '1rem', marginBottom: '1rem' }}>Asignación de Docentes (Opcional)</h3>
+
+              <div className="space-y-3">
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label text-xs uppercase tracking-wider font-semibold text-primary">Docente Tutor</label>
+                  <input
+                    type="text"
+                    placeholder="Nombre del Tutor"
+                    className="form-control"
+                    value={newGroupData.tutor_name}
+                    onChange={e => setNewGroupData({ ...newGroupData, tutor_name: e.target.value })}
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label text-xs uppercase tracking-wider font-semibold text-primary">Docente Guía</label>
+                  <input
+                    type="text"
+                    placeholder="Nombre del Guía"
+                    className="form-control"
+                    value={newGroupData.guia_name}
+                    onChange={e => setNewGroupData({ ...newGroupData, guia_name: e.target.value })}
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label text-xs uppercase tracking-wider font-semibold text-primary">Docente Revisor</label>
+                  <input
+                    type="text"
+                    placeholder="Nombre del Revisor"
+                    className="form-control"
+                    value={newGroupData.revisor_name}
+                    onChange={e => setNewGroupData({ ...newGroupData, revisor_name: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end mt-6 pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
+                <button type="button" onClick={() => setIsAddGroupModalOpen(false)} className="btn btn-secondary" disabled={isSavingGroup}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={isSavingGroup}>
+                  {isSavingGroup ? 'Guardando...' : 'Crear Grupo'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       , document.body)}
