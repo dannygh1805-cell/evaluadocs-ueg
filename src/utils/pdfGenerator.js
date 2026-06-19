@@ -280,7 +280,7 @@ export const generateReport = (groupData, evaluationData) => {
   printParagraph('6. RECOMENDACIONES', 'Con base en los hallazgos del proceso de evaluación, se recomienda fortalecer la continuidad de proyectos prácticos como mecanismo para desarrollar competencias integradas en los estudiantes. Se sugiere reforzar el acompañamiento docente en la planificación, redacción y revisión de los estudios de caso escritos, asegurando que los estudiantes cuenten con una guía efectiva durante todo el proceso.');
 
   // Firmas
-  if (currentY > 155) {
+  if (currentY > 190) {
     doc.addPage();
     currentY = 20;
   }
@@ -289,7 +289,7 @@ export const generateReport = (groupData, evaluationData) => {
   doc.setFontSize(10);
   doc.setTextColor(0);
   doc.text('DESARROLLO DEL DOCUMENTO (Miembros de la Comisión Calificadora)', 14, currentY);
-  currentY += 15;
+  currentY += 10;
 
   // Fila de Comisión Calificadora (3 columnas simétricas)
   // Tutor
@@ -313,13 +313,13 @@ export const generateReport = (groupData, evaluationData) => {
   doc.setFont('helvetica', 'normal');
   doc.text('Docente Revisor', 167, currentY + 10, { align: 'center' });
 
-  currentY += 25;
+  currentY += 20;
 
   // AUTORIZACIÓN, APROBACIÓN Y RECEPCIÓN
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.text('AUTORIZACIÓN, APROBACIÓN Y RECEPCIÓN', 14, currentY);
-  currentY += 10;
+  currentY += 8;
 
   // Textos explicativos superiores
   doc.setFont('helvetica', 'normal');
@@ -327,8 +327,8 @@ export const generateReport = (groupData, evaluationData) => {
   doc.text('Revisado y aprobado por:', 60, currentY, { align: 'center' });
   doc.text('Recibido por:', 150, currentY, { align: 'center' });
 
-  // Espacio para la firma (20mm)
-  currentY += 20;
+  // Espacio para la firma (12mm)
+  currentY += 12;
 
   // Fila de Autoridades (2 columnas simétricas)
   // Vicerrectora
@@ -346,7 +346,7 @@ export const generateReport = (groupData, evaluationData) => {
   doc.text('Mgs. Roberto Galarza', 150, currentY + 5, { align: 'center' });
   doc.setFont('helvetica', 'normal');
   doc.text('Rector(a)', 150, currentY + 10, { align: 'center' });
-  doc.text('Fecha: ___________________', 150, currentY + 16, { align: 'center' });
+  doc.text('Fecha: ___________________', 150, currentY + 15, { align: 'center' });
 
   const courseStr = (groupData.course || '').replace(/ /g, '_').toUpperCase();
   const surnames = groupData.students ? groupData.students.map(s => s.full_name.split(' ')[0].toUpperCase()).join('_') : 'ESTUDIANTES';
