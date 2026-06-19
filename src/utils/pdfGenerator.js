@@ -355,3 +355,168 @@ export const generateReport = (groupData, evaluationData) => {
   const surnames = groupData.students ? groupData.students.map(s => s.full_name.split(' ')[0].toUpperCase()).join('_') : 'ESTUDIANTES';
   doc.save(`${courseStr}_${surnames}_2025_2026.pdf`);
 };
+
+export const generateCourseSummaryReport = (courseName, courseGroups) => {
+  const doc = new jsPDF('p', 'mm', 'a4');
+  doc.setLineHeightFactor(1.35);
+
+  const headerColor = [220, 224, 230]; // Gris claro profesional
+  const textColor = 0;
+
+  const toTitleCase = (str) => {
+    if (!str) return '';
+    return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
+  // Encontrar el tutor dominante del curso
+  const getCourseTutor = (groupsList) => {
+    const counts = {};
+    let maxCount = 0;
+    let tutorName = 'Sin asignar';
+    groupsList.forEach(g => {
+      if (g.tutor_name && g.tutor_name !== 'Sin asignar') {
+        const cleaned = g.tutor_name.trim();
+        counts[cleaned] = (counts[cleaned] || 0) + 1;
+        if (counts[cleaned] > maxCount) {
+          maxCount = counts[cleaned];
+          tutorName = cleaned;
+        }
+      }
+    });
+    return toTitleCase(tutorName);
+  };
+
+  const getQualitativeDescriptor = (score) => {
+    const val = Number(score);
+    if (val >= 9.00) return 'DAR';
+    if (val >= 7.00) return 'AAR';
+    if (val >= 4.01) return 'PAAR';
+    return 'NAAR';
+  };
+
+  const studentList = [];
+
+  courseGroups.forEach(group => {
+    const plagio = Number(group.plagiarism_percentage || 0);
+    const ai = Number(group.ai_percentage || 0);
+    let penalty = 0;
+    if (plagio > 15) penalty += Math.ceil((plagio - 15) / 5) * 0.25;
+    if (ai > 15) penalty += Math.ceil((ai - 15) / 5) * 0.25;
+
+    const evW = group.evaluations_written || [];
+    let sumW = 0;
+    evW.forEach(e => {
+       const sumFields = Number(e.score_introduccion||0) + Number(e.score_antecedentes||0) + Number(e.score_definicion_problema||0) + Number(e.score_justificacion||0) + Number(e.score_objetivos||0) + Number(e.score_marco_conceptual||0) + Number(e.score_marco_metodologico||0) + Number(e.score_resultados||0) + Number(e.score_analisis||0) + Number(e.score_conclusiones||0) + Number(e.score_recomendaciones||0) + Number(e.score_referencias||0) + Number(e.score_anexos||0) + Number(e.score_formato||0);
+       sumW += (sumFields / 14);
+    });
+    const avgWrittenRaw = evW.length ? (sumW / evW.length) : 0;
+    const avgWritten = Math.max(0, avgWrittenRaw - penalty);
+
+    (group.students || []).forEach(student => {
+      const evO = student.evaluations_oral || [];
+      let sumO = 0;
+      evO.forEach(e => {
+         const sumFields = Number(e.score_communication||0) + Number(e.score_knowledge||0) + Number(e.score_answers||0) + Number(e.score_time||0);
+         sumO += (sumFields / 4);
+      });
+      const avgOral = evO.length ? (sumO / evO.length) : 0;
+
+      const evP = student.evaluations_practical || [];
+      let sumP = 0;
+      evP.forEach(e => sumP += Number(e.final_score || 0));
+      const avgPractical = evP.length ? (sumP / evP.length) : 0.0;
+
+      const notaFinal = (avgWritten + avgOral + avgPractical) / 3;
+
+      studentList.push({
+        name: student.full_name || 'N/A',
+        groupId: group.id,
+        notaFinal: Number(notaFinal.toFixed(2))
+      });
+    });
+  });
+
+  // Ordenar alfabéticamente
+  studentList.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+
+  // Dibujar encabezado difuminado
+  for (let i = 0; i < 35; i++) {
+    const r = Math.round(190 + ((255 - 190) * (i / 35)));
+    const g = Math.round(225 + ((255 - 225) * (i / 35)));
+    const b = Math.round(245 + ((255 - 245) * (i / 35)));
+    doc.setFillColor(r, g, b);
+    doc.rect(0, i, 210, 1.5, 'F');
+  }
+
+  // Insertar Sello
+  if (selloBase64) {
+    doc.addImage(selloBase64, 'PNG', 14, 5, 22, 22);
+  }
+
+  // Título
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.setTextColor(30, 58, 138); // Azul oscuro
+  doc.text('Unidad Educativa Guayaquil', 105, 12, { align: 'center' });
+  doc.setFontSize(11);
+  doc.setTextColor(textColor);
+  doc.text('Resumen de Calificaciones de Estudio de Caso por Curso', 105, 18, { align: 'center' });
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Año Lectivo: 2025 - 2026', 105, 23, { align: 'center' });
+
+  // Datos informativos
+  const tutorName = getCourseTutor(courseGroups);
+  autoTable(doc, {
+    startY: 32,
+    theme: 'grid',
+    styles: { fontSize: 8.5, cellPadding: 1.5 },
+    headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
+    body: [
+      ['Curso / Grado', courseName, 'Fecha de reporte', new Date().toLocaleDateString()],
+      ['Docente Tutor', tutorName, 'Rector(a)', 'Mgs. Roberto Galarza']
+    ]
+  });
+
+  // Tabla de estudiantes y calificaciones
+  const tableBody = studentList.map((s, idx) => [
+    idx + 1,
+    s.name,
+    s.groupId,
+    s.notaFinal.toFixed(2),
+    getQualitativeDescriptor(s.notaFinal)
+  ]);
+
+  autoTable(doc, {
+    startY: doc.lastAutoTable.finalY + 5,
+    theme: 'grid',
+    head: [['Nº', 'Estudiante', 'Grupo', 'Nota de Grado', 'Escala']],
+    headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold', halign: 'center' },
+    styles: { fontSize: 9, cellPadding: 2 },
+    columnStyles: {
+      0: { cellWidth: 15, halign: 'center' },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 25, halign: 'center' },
+      3: { cellWidth: 35, halign: 'center' },
+      4: { cellWidth: 25, halign: 'center' }
+    },
+    body: tableBody
+  });
+
+  let currentY = doc.lastAutoTable.finalY + 25;
+  if (currentY > 240) {
+    doc.addPage();
+    currentY = 20;
+  }
+
+  // Firma del Tutor
+  doc.line(70, currentY, 130, currentY);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text(tutorName, 100, currentY + 5, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.text('Docente Tutor', 100, currentY + 10, { align: 'center' });
+
+  const courseStr = courseName.replace(/ /g, '_').toUpperCase();
+  doc.save(`ACTA_DE_CALIFICACIONES_${courseStr}_2025_2026.pdf`);
+};

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Users, CheckCircle, Clock, PlayCircle, Link as LinkIcon, BookOpen, PenTool, Trash2, Edit2, Plus, X, Eye } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
-import { generateReport } from '../utils/pdfGenerator';
+import { generateReport, generateCourseSummaryReport } from '../utils/pdfGenerator';
 
 const AdminDashboard = () => {
   const [groups, setGroups] = useState([]);
@@ -381,6 +381,13 @@ const AdminDashboard = () => {
     return group.evaluations_written?.filter(e => e.status === 'completed').length === 3;
   };
 
+  const uniqueCourses = [...new Set(groups.map(g => g.course))].filter(Boolean);
+
+  const downloadCourseSummary = (courseName) => {
+    const courseGroups = groups.filter(g => g.course === courseName);
+    generateCourseSummaryReport(courseName, courseGroups);
+  };
+
   if (loading) return <div className="p-8 text-center">Cargando panel de administración...</div>;
 
   return (
@@ -411,6 +418,17 @@ const AdminDashboard = () => {
                 onChange={e => setSearchTerm(e.target.value)}
                 style={{ maxWidth: '280px' }}
               />
+              {uniqueCourses.map(course => (
+                <button 
+                  key={course}
+                  className="btn btn-secondary"
+                  style={{ backgroundColor: '#f0fdf4', color: '#166534', borderColor: '#bbf7d0', padding: '0.5rem 0.75rem', fontSize: '0.875rem' }}
+                  onClick={() => downloadCourseSummary(course)}
+                  title={`Descargar Acta de Calificaciones del curso ${course}`}
+                >
+                  Acta {course}
+                </button>
+              ))}
               <button 
                 className="btn btn-primary flex items-center gap-2"
                 onClick={() => setIsAddGroupModalOpen(true)}
