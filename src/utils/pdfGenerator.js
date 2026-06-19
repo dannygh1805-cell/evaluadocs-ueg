@@ -280,7 +280,7 @@ export const generateReport = (groupData, evaluationData) => {
   printParagraph('6. RECOMENDACIONES', 'Con base en los hallazgos del proceso de evaluación, se recomienda fortalecer la continuidad de proyectos prácticos como mecanismo para desarrollar competencias integradas en los estudiantes. Se sugiere reforzar el acompañamiento docente en la planificación, redacción y revisión de los estudios de caso escritos, asegurando que los estudiantes cuenten con una guía efectiva durante todo el proceso.');
 
   // Firmas
-  if (currentY > 200) {
+  if (currentY > 170) {
     doc.addPage();
     currentY = 20;
   }
@@ -288,7 +288,7 @@ export const generateReport = (groupData, evaluationData) => {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(0);
-  doc.text('DESARROLLO DEL DOCUMENTO (Miembros de la Comisión Evaluación)', 14, currentY);
+  doc.text('DESARROLLO DEL DOCUMENTO (Miembros de la Comisión Calificadora)', 14, currentY);
   currentY += 15;
 
   // Fila de Comisión Calificadora (3 columnas simétricas)
@@ -313,27 +313,37 @@ export const generateReport = (groupData, evaluationData) => {
   doc.setFont('helvetica', 'normal');
   doc.text('Docente Revisor', 167, currentY + 10, { align: 'center' });
 
-  currentY += 20;
-
-  // Vicerrectora (Revisado y aprobado por)
-  doc.setFont('helvetica', 'bold');
-  doc.text('REVISADO Y APROBADO POR:', 14, currentY);
-  currentY += 15;
-
-  doc.line(80, currentY, 130, currentY); // Centrado en la página
-  doc.setFont('helvetica', 'bold');
-  doc.text('Lic. Sonia Cuenca', 105, currentY + 5, { align: 'center' });
-  doc.setFont('helvetica', 'normal');
-  doc.text('Vicerrectora (E)', 105, currentY + 10, { align: 'center' });
-
   currentY += 25;
 
-  // Espacio de recepción del Rector
-  doc.setFont('helvetica', 'normal');
-  doc.text('Recibido por: ___________________________          Fecha: ___________________', 14, currentY);
-  currentY += 8;
+  // AUTORIZACIÓN, APROBACIÓN Y RECEPCIÓN
   doc.setFont('helvetica', 'bold');
-  doc.text('Mgs. Roberto Galarza — Rector(a)', 14, currentY);
+  doc.setFontSize(10);
+  doc.text('AUTORIZACIÓN, APROBACIÓN Y RECEPCIÓN', 14, currentY);
+  currentY += 15;
+
+  // Fila de Autoridades (2 columnas simétricas)
+  // Vicerrectora
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Revisado y aprobado por:', 60, currentY - 4, { align: 'center' });
+  doc.line(35, currentY, 85, currentY);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Lic. Sonia Cuenca', 60, currentY + 5, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.text('Vicerrectora (E)', 60, currentY + 10, { align: 'center' });
+
+  // Rector
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Recibido por:', 150, currentY - 4, { align: 'center' });
+  doc.line(125, currentY, 175, currentY);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Mgs. Roberto Galarza', 150, currentY + 5, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.text('Rector(a)', 150, currentY + 10, { align: 'center' });
+  doc.text('Fecha: ___________________', 150, currentY + 16, { align: 'center' });
 
   const courseStr = (groupData.course || '').replace(/ /g, '_').toUpperCase();
   const surnames = groupData.students ? groupData.students.map(s => s.full_name.split(' ')[0].toUpperCase()).join('_') : 'ESTUDIANTES';
