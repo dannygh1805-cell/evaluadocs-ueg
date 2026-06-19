@@ -36,6 +36,23 @@ const AdminDashboard = () => {
   const [editingPercentGroupId, setEditingPercentGroupId] = useState(null);
   const [editingPercents, setEditingPercents] = useState({ plagiarism_percentage: 0, ai_percentage: 0 });
 
+  // Estado para notificaciones flotantes (toasts)
+  const [toasts, setToasts] = useState([]);
+
+  const addToast = (message) => {
+    const id = Date.now() + Math.random().toString(36).substr(2, 9);
+    setToasts(prev => [...prev, { id, message }]);
+    
+    // Auto-eliminar después de 10 segundos
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 10000);
+  };
+
+  const removeToast = (id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
   // Estado para creación de nuevos grupos
   const [isAddGroupModalOpen, setIsAddGroupModalOpen] = useState(false);
   const [isSavingGroup, setIsSavingGroup] = useState(false);
@@ -48,8 +65,33 @@ const AdminDashboard = () => {
     revisor_name: ''
   });
   
-  const fetchGroups = async () => {
-    setLoading(true);
+  const groupsRef = React.useRef(groups);
+  useEffect(() => {
+    groupsRef.current = groups;
+  }, [groups]);
+
+  const detectNewEvaluations = (oldGroups, newGroups) => {
+    if (!oldGroups || oldGroups.length === 0) return;
+    
+    newGroups.forEach(newG => {
+      const oldG = oldGroups.find(g => g.id === newG.id);
+      if (!oldG) return;
+      
+      const roles = ['tutor', 'guia', 'revisor'];
+      roles.forEach(role => {
+        const newEv = newG.evaluations_written?.find(e => e.evaluator_role === role && e.status === 'completed');
+        const oldEv = oldG.evaluations_written?.find(e => e.evaluator_role === role && e.status === 'completed');
+        
+        if (newEv && !oldEv) {
+          const teacherName = newG[`${role}_name`] || `Docente ${role.toUpperCase()}`;
+          addToast(`El docente ${teacherName} (${role.toUpperCase()}) del ${newG.id} ha enviado sus calificaciones.`);
+        }
+      });
+    });
+  };
+
+  const fetchGroups = async (silent = false) => {
+    if (!silent) setLoading(true);
     const { data: groupsData, error: groupsError } = await supabase
       .from('groups')
       .select(`
@@ -62,6 +104,11 @@ const AdminDashboard = () => {
       
     if (!groupsError && groupsData) {
       groupsData.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
+      
+      if (groupsRef.current && groupsRef.current.length > 0 && silent) {
+        detectNewEvaluations(groupsRef.current, groupsData);
+      }
+
       setGroups(groupsData);
 
       // Precargar calificaciones prácticas existentes
@@ -75,11 +122,15 @@ const AdminDashboard = () => {
       });
       setPracticalScores(pScores);
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
 
   useEffect(() => {
     fetchGroups();
+    const interval = setInterval(() => {
+      fetchGroups(true);
+    }, 12000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleStartConfig = (group) => {
@@ -801,6 +852,36 @@ const AdminDashboard = () => {
           </div>
         </div>
       , document.body)}
+
+      {/* Contenedor de Notificaciones Flotantes (Toasts) */}
+      <div style={{ position: 'fixed', top: '24px', right: '24px', zIndex: 10000, display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '380px', width: '100%' }}>
+        {toasts.map(t => (
+          <div 
+            key={t.id} 
+            className="animate-fade-in flex items-center justify-between p-4 rounded-lg shadow-xl border-l-4" 
+            style={{ 
+              backgroundColor: 'var(--bg-surface)', 
+              borderColor: 'var(--color-success)',
+              boxShadow: '0 10px 30px -5px rgba(0,0,0,0.15), 0 5px 15px -5px rgba(0,0,0,0.1)',
+              borderTop: '1px solid var(--border-light)',
+              borderRight: '1px solid var(--border-light)',
+              borderBottom: '1px solid var(--border-light)',
+            }}
+          >
+            <div className="flex-1 mr-3" style={{ fontSize: '0.88rem', fontWeight: 500, lineHeight: '1.4' }}>
+              <span className="text-success font-bold" style={{ display: 'block', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '2px', letterSpacing: '0.05em' }}>🔔 Nueva Calificación</span>
+              {t.message}
+            </div>
+            <button 
+              onClick={() => removeToast(t.id)} 
+              className="text-muted hover:text-dark" 
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        ))}
+      </div>
 
     </div>
   );

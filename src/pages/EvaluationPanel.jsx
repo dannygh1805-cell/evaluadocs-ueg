@@ -4,6 +4,16 @@ import { useParams } from 'react-router-dom';
 import { Save, AlertTriangle, FileText } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 
+const normalizeName = (name) => {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove accents
+    .trim()
+    .replace(/\s+/g, ' '); // Normalize spaces
+};
+
 const EvaluationPanel = () => {
   const { groupId } = useParams();
   const role = localStorage.getItem('userRole') || 'tutor';
@@ -16,6 +26,11 @@ const EvaluationPanel = () => {
   const [view, setView] = useState('evaluation'); // 'evaluation' | 'summary'
   
   const [fillValue, setFillValue] = useState('');
+
+  // Estados para la identificación y confirmación
+  const [acceptedId, setAcceptedId] = useState(() => {
+    return localStorage.getItem(`accepted_id_${groupId}_${role}`) === 'true';
+  });
 
   // 14 Parámetros del Proyecto Escrito
   const initialWrittenScores = {
@@ -70,18 +85,19 @@ const EvaluationPanel = () => {
           }
 
           if (!currentPhone || currentPhone === 'N/A' || currentPhone.trim() === '') {
-            // Buscar si ya ingresó su teléfono en algún grupo previo
-            const { data: existingRegs } = await supabase.from('teachers_registry')
-              .select('cellphone')
-              .eq('full_name', teacherName)
+            // Buscar en todos los registros existentes usando JS robusto (case-insensitive y sin acentos)
+            const { data: allRegs } = await supabase.from('teachers_registry')
+              .select('full_name, cellphone')
               .neq('cellphone', 'N/A')
               .neq('cellphone', '')
-              .not('cellphone', 'is', null)
-              .order('created_at', { ascending: false });
+              .not('cellphone', 'is', null);
 
-            if (existingRegs && existingRegs.length > 0) {
-              const autofilledPhone = existingRegs[0].cellphone;
-              // Auto-llenar en la base de datos
+            const normalizedTarget = normalizeName(teacherName);
+            const foundReg = allRegs?.find(r => normalizeName(r.full_name) === normalizedTarget);
+
+            if (foundReg) {
+              const autofilledPhone = foundReg.cellphone;
+              // Auto-llenar en la base de datos para la sesión actual
               await supabase.from('teachers_registry')
                 .update({ cellphone: autofilledPhone, full_name: teacherName })
                 .eq('group_id', groupId)
@@ -306,9 +322,10 @@ const EvaluationPanel = () => {
   const handleFinish = () => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('groupId');
-    // Limpiar borradores al terminar
+    // Limpiar borradores y confirmaciones al terminar
     localStorage.removeItem(`draft_w_${groupId}_${role}`);
     localStorage.removeItem(`draft_o_${groupId}_${role}`);
+    localStorage.removeItem(`accepted_id_${groupId}_${role}`);
     window.dispatchEvent(new Event('authChange'));
     window.location.hash = '#/login';
   };
@@ -341,6 +358,45 @@ const EvaluationPanel = () => {
               {isSavingPhone ? 'Guardando...' : 'Confirmar y Registrarse'}
             </button>
           </form>
+        </div>
+      </div>
+    );
+  }
+
+  if (!acceptedId) {
+    const roleLabel = role === 'tutor' ? 'Tutor' : role === 'guia' ? 'Guía' : 'Revisor';
+    let teacherName = '';
+    if (groupData) {
+      if (role === 'tutor') teacherName = groupData.tutor_name;
+      else if (role === 'guia') teacherName = groupData.guia_name;
+      else if (role === 'revisor') teacherName = groupData.revisor_name;
+    }
+
+    const handleAcceptIdentification = () => {
+      localStorage.setItem(`accepted_id_${groupId}_${role}`, 'true');
+      setAcceptedId(true);
+    };
+
+    return (
+      <div className="animate-fade-in flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="surface p-8 text-center" style={{ maxWidth: '500px', width: '100%' }}>
+          <div className="flex justify-center mb-4 text-primary">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </div>
+          <h2 className="h2 text-primary mb-4">Confirmación de Identidad</h2>
+          <p className="text-muted mb-6" style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
+            Se ha identificado como <span className="text-primary font-bold">{roleLabel}</span>:
+            <br />
+            <strong className="text-lg block mt-2 text-dark" style={{ fontSize: '1.3rem', color: 'var(--text-main)' }}>
+              {teacherName || <span className="italic text-muted">Sin nombre asignado</span>}
+            </strong>
+          </p>
+          <button 
+            onClick={handleAcceptIdentification} 
+            className="btn btn-primary w-full py-3 text-md font-bold"
+          >
+            Aceptar y Continuar
+          </button>
         </div>
       </div>
     );
