@@ -59,7 +59,7 @@ export const generateReport = (groupData, evaluationData) => {
     headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
     body: [
       ['Fecha de informe', new Date().toLocaleDateString(), 'Nº De informe', `18D02-UEG-V-2025-2026-${groupData.id.replace('G-', '')}`],
-      ['Fecha de sustentación oral', { content: '[CONFIRMAR DD/MM/AAAA]', colSpan: 3 }]
+      ['Fecha de sustentación oral', { content: new Date().toLocaleString('es-EC', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }), colSpan: 3 }]
     ]
   });
 
@@ -83,7 +83,7 @@ export const generateReport = (groupData, evaluationData) => {
     head: [['Informe dirigido a', 'Nombres', 'Cargo']],
     headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
     body: [
-      ['Rector(a)', 'Mgs. [CONFIRMAR] Roberto Galarza', 'Autoridad Institucional']
+      ['Rector(a)', 'Mgs. Roberto Galarza', 'Autoridad Institucional']
     ]
   });
 
@@ -121,8 +121,8 @@ export const generateReport = (groupData, evaluationData) => {
     currentY += dimensions.h + 5;
   };
 
-  printParagraph('1. ANTECEDENTES', 'De acuerdo con el Acuerdo Ministerial MINEDUC-MINEDUC-2024-00031-A, de 22 de mayo de 2024, que regula los procesos de evaluación educativa y organizacionales de las instituciones educativas del Sistema Nacional de Educación, y con el Instructivo de Evaluación Estudiantil vigente para el régimen Sierra-Amazonía [CONFIRMAR número/fecha de la edición 2025-2026], que en su anexo de Evaluación Final de Bachillerato establece los lineamientos para el desarrollo del Proyecto de Grado como proceso de evaluación final para los estudiantes de tercero de Bachillerato General Unificado (BGU), la Unidad Educativa Guayaquil ha implementado la modalidad de Estudio de Caso como estrategia para promover el pensamiento crítico, el trabajo colaborativo y la solución de problemas contextualizados.\n\nCon base en lo dispuesto en el numeral 6.3.1 de los "Lineamientos para la elaboración del Proyecto de Grado 2024-2025 (vigentes para el presente ciclo lectivo 2025-2026 salvo actualización ministerial específica — verificar)", se asignó a los estudiantes la ejecución de un proyecto práctico vinculado a su entorno institucional, un estudio de caso escrito que documente la problemática abordada, y una presentación oral que evidencie el dominio del tema y la comunicación efectiva.\n\nLas autoridades institucionales, en cumplimiento de lo establecido, conformaron la Comisión Calificadora encargada de evaluar los tres componentes del proyecto de manera integral, objetiva y bajo criterios técnicos establecidos por el Ministerio de Educación.');
-  printParagraph('2. ALCANCE', 'Este informe está dirigido a Mgs. [CONFIRMAR] Roberto Galarza, rector de la Unidad Educativa Guayaquil y tiene como objetivo presentar el proceso y los resultados de la evaluación integral del Proyecto de Grado desarrollado por los estudiantes de tercero de BGU, a través de la aplicación de la matriz de calificación correspondiente a cada componente del proyecto.');
+  printParagraph('1. ANTECEDENTES', 'De acuerdo con el Acuerdo Ministerial MINEDUC-MINEDUC-2024-00031-A, de 22 de mayo de 2024, que regula los procesos de evaluación educativa y organizacionales de las instituciones educativas del Sistema Nacional de Educación, y con el Instructivo de Evaluación Estudiantil vigente para el régimen Sierra-Amazonía del año lectivo 2025-2026, que en su anexo de Evaluación Final de Bachillerato establece los lineamientos para el desarrollo del Proyecto de Grado como proceso de evaluación final para los estudiantes de tercero de Bachillerato General Unificado (BGU), la Unidad Educativa Guayaquil ha implementado la modalidad de Estudio de Caso como estrategia para promover el pensamiento crítico, el trabajo colaborativo y la solución de problemas contextualizados.\n\nCon base en lo dispuesto en el numeral 6.3.1 de los "Lineamientos para la elaboración del Proyecto de Grado vigentes para el presente ciclo lectivo 2025-2026", se asignó a los estudiantes la ejecución de un proyecto práctico vinculado a su entorno institucional, un estudio de caso escrito que documente la problemática abordada, y una presentación oral que evidencie el dominio del tema y la comunicación efectiva.\n\nLas autoridades institucionales, en cumplimiento de lo establecido, conformaron la Comisión Calificadora encargada de evaluar los tres componentes del proyecto de manera integral, objetiva y bajo criterios técnicos establecidos por el Ministerio de Educación.');
+  printParagraph('2. ALCANCE', 'Este informe está dirigido a Mgs. Roberto Galarza, rector de la Unidad Educativa Guayaquil y tiene como objetivo presentar el proceso y los resultados de la evaluación integral del Proyecto de Grado desarrollado por los estudiantes de tercero de BGU, a través de la aplicación de la matriz de calificación correspondiente a cada componente del proyecto.');
   printParagraph('3. OBJETIVOS', '- Informar a la autoridad institucional sobre el proceso de evaluación del Proyecto de Grado.\n- Verificar el cumplimiento de los lineamientos establecidos por el Ministerio de Educación.\n- Emitir la calificación final con base en las evidencias del trabajo práctico, escrito y expositivo.');
   printParagraph('4. DESARROLLO O ANÁLISIS', 'Durante el proceso de evaluación del Proyecto de Grado, la Comisión Calificadora aplicó rúbricas específicas correspondientes a cada fase del proyecto: la parte práctica, el estudio de caso escrito y la exposición oral. Las calificaciones se asignaron en base a rúbricas previamente estructuradas con criterios objetivos y rangos de valoración que van del 1 al 10 por aspecto, tal como lo indican los lineamientos ministeriales. Este proceso permitió evaluar integralmente las competencias desarrolladas por los estudiantes en el transcurso del proyecto.');
 
@@ -251,7 +251,7 @@ export const generateReport = (groupData, evaluationData) => {
   else if (minVal === avgGroupOral) lowestComponentLabel = 'la Parte Oral (Defensa)';
   else lowestComponentLabel = 'la Parte Práctica (Proyecto Práctico)';
 
-  const groupConclusion = `Con base en los resultados obtenidos, el curso ${groupData.course || 'N/A'}, (grupo) alcanzó un promedio de ${groupAvg.toFixed(2)} en la Nota de Grado, lo que evidencia que el grupo ${groupDescriptor}. El componente con menor desempeño relativo fue ${lowestComponentLabel}, por lo que se recomienda reforzar este aspecto en futuras generaciones.`;
+  const groupConclusion = `Con base en los resultados obtenidos, el curso ${groupData.course || 'N/A'}, grupo ${groupData.id || 'N/A'} alcanzó un promedio de ${groupAvg.toFixed(2)} en la Nota de Grado, lo que evidencia que el grupo ${groupDescriptor}. El componente con menor desempeño relativo fue ${lowestComponentLabel}, por lo que se recomienda reforzar este aspecto en futuras generaciones.`;
 
   const individualConclusions = studentResults.map(s => {
     const components = [
@@ -316,7 +316,7 @@ export const generateReport = (groupData, evaluationData) => {
   doc.text('Recibido por: ___________________________          Fecha: ___________________', 14, currentY);
   currentY += 8;
   doc.setFont('helvetica', 'bold');
-  doc.text('Mgs. [CONFIRMAR] Roberto Galarza — Rector(a)', 14, currentY);
+  doc.text('Mgs. Roberto Galarza — Rector(a)', 14, currentY);
 
   const courseStr = (groupData.course || '').replace(/ /g, '_').toUpperCase();
   const surnames = groupData.students ? groupData.students.map(s => s.full_name.split(' ')[0].toUpperCase()).join('_') : 'ESTUDIANTES';
