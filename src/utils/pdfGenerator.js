@@ -56,6 +56,7 @@ export const generateReport = (groupData, evaluationData) => {
   autoTable(doc, {
     startY: 32,
     theme: 'grid',
+    styles: { fontSize: 8.5, cellPadding: 1.5 },
     headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
     body: [
       ['Fecha de informe', new Date().toLocaleDateString(), 'Nº De informe', `18D02-UEG-V-2025-2026-${groupData.id.replace('G-', '')}`],
@@ -65,8 +66,9 @@ export const generateReport = (groupData, evaluationData) => {
 
   // 2. Responsables
   autoTable(doc, {
-    startY: doc.lastAutoTable.finalY + 5,
+    startY: doc.lastAutoTable.finalY + 3,
     theme: 'grid',
+    styles: { fontSize: 8.5, cellPadding: 1.5 },
     head: [['Funcionarios', 'Nombres', 'Contacto']],
     headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
     body: [
@@ -78,8 +80,9 @@ export const generateReport = (groupData, evaluationData) => {
 
   // 3. Dirigido a
   autoTable(doc, {
-    startY: doc.lastAutoTable.finalY + 5,
+    startY: doc.lastAutoTable.finalY + 3,
     theme: 'grid',
+    styles: { fontSize: 8.5, cellPadding: 1.5 },
     head: [['Informe dirigido a', 'Nombres', 'Cargo']],
     headStyles: { fillColor: headerColor, textColor: textColor, fontStyle: 'bold' },
     body: [
@@ -90,8 +93,9 @@ export const generateReport = (groupData, evaluationData) => {
   // 4. Tema y estudiantes
   const studentsBody = (groupData.students || []).map((s, i) => [`Estudiante ${i+1}`, s.full_name || '']);
   autoTable(doc, {
-    startY: doc.lastAutoTable.finalY + 5,
+    startY: doc.lastAutoTable.finalY + 3,
     theme: 'grid',
+    styles: { fontSize: 8.5, cellPadding: 1.5 },
     body: [
       ['TEMA', { content: groupData.theme || 'Estudio de Caso 2024-2025', colSpan: 2 }],
       ['CURSO', { content: groupData.course || 'N/A', colSpan: 2 }],
@@ -99,7 +103,7 @@ export const generateReport = (groupData, evaluationData) => {
     ]
   });
 
-  let currentY = doc.lastAutoTable.finalY + 10;
+  let currentY = doc.lastAutoTable.finalY + 8;
 
   // Funcion para imprimir parrafos justificados
   const printParagraph = (title, text) => {
@@ -110,27 +114,25 @@ export const generateReport = (groupData, evaluationData) => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text(title, 14, currentY);
-    currentY += 5;
+    currentY += 4;
     
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     
     // Mejorar la justificación de texto calculando las dimensiones reales
-    const dimensions = doc.getTextDimensions(text, { maxWidth: 180 });
-    doc.text(text, 14, currentY, { maxWidth: 180, align: 'justify' });
-    currentY += dimensions.h + 5;
+    const dimensions = doc.getTextDimensions(text, { maxWidth: 182 });
+    doc.text(text, 14, currentY, { maxWidth: 182, align: 'justify' });
+    currentY += dimensions.h + 3;
   };
 
   printParagraph('1. ANTECEDENTES', 'De acuerdo con el Acuerdo Ministerial MINEDUC-MINEDUC-2024-00031-A, de 22 de mayo de 2024, que regula los procesos de evaluación educativa y organizacionales de las instituciones educativas del Sistema Nacional de Educación, y con el Instructivo de Evaluación Estudiantil vigente para el régimen Sierra-Amazonía del año lectivo 2025-2026, que en su anexo de Evaluación Final de Bachillerato establece los lineamientos para el desarrollo del Proyecto de Grado como proceso de evaluación final para los estudiantes de tercero de Bachillerato General Unificado (BGU), la Unidad Educativa Guayaquil ha implementado la modalidad de Estudio de Caso como estrategia para promover el pensamiento crítico, el trabajo colaborativo y la solución de problemas contextualizados.\n\nCon base en lo dispuesto en el numeral 6.3.1 de los "Lineamientos para la elaboración del Proyecto de Grado vigentes para el presente ciclo lectivo 2025-2026", se asignó a los estudiantes la ejecución de un proyecto práctico vinculado a su entorno institucional, un estudio de caso escrito que documente la problemática abordada, y una presentación oral que evidencie el dominio del tema y la comunicación efectiva.\n\nLas autoridades institucionales, en cumplimiento de lo establecido, conformaron la Comisión Calificadora encargada de evaluar los tres componentes del proyecto de manera integral, objetiva y bajo criterios técnicos establecidos por el Ministerio de Educación.');
   printParagraph('2. ALCANCE', 'Este informe está dirigido a Mgs. Roberto Galarza, rector de la Unidad Educativa Guayaquil y tiene como objetivo presentar el proceso y los resultados de la evaluación integral del Proyecto de Grado desarrollado por los estudiantes de tercero de BGU, a través de la aplicación de la matriz de calificación correspondiente a cada componente del proyecto.');
   printParagraph('3. OBJETIVOS', '- Informar a la autoridad institucional sobre el proceso de evaluación del Proyecto de Grado.\n- Verificar el cumplimiento de los lineamientos establecidos por el Ministerio de Educación.\n- Emitir la calificación final con base en las evidencias del trabajo práctico, escrito y expositivo.');
-  printParagraph('4. DESARROLLO O ANÁLISIS', 'Durante el proceso de evaluación del Proyecto de Grado, la Comisión Calificadora aplicó rúbricas específicas correspondientes a cada fase del proyecto: la parte práctica, el estudio de caso escrito y la exposición oral. Las calificaciones se asignaron en base a rúbricas previamente estructuradas con criterios objetivos y rangos de valoración que van del 1 al 10 por aspecto, tal como lo indican los lineamientos ministeriales. Este proceso permitió evaluar integralmente las competencias desarrolladas por los estudiantes en el transcurso del proyecto.');
+  printParagraph('4. DESARROLLO O ANÁLISIS', 'Durante el proceso de evaluación del Proyecto de Grado, la Comisión Calificadora aplicó rúbricas específicas correspondientes a cada fase del proyecto: la parte práctica, el estudio de caso escrito y la exposición oral. Las calificaciones se asignaron en base a rúbricas previamente estructuradas con criterios objetivos y rangos de valoración que van del 1 al 10 por aspect, tal como lo indican los lineamientos ministeriales. Este proceso permitió evaluar integralmente las competencias desarrolladas por los estudiantes en el transcurso del proyecto.');
 
-  // RESULTADOS
-  if (currentY > 230) {
-    doc.addPage();
-    currentY = 20;
-  }
+  // RESULTADOS (Forzar inicio en la página 2 para consistencia de 2 páginas)
+  doc.addPage();
+  currentY = 20;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
