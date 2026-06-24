@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Users, CheckCircle, Clock, PlayCircle, Link as LinkIcon, BookOpen, PenTool, Trash2, Edit2, Plus, X, Eye } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
-import { generateReport, generateCourseSummaryReport } from '../utils/pdfGenerator';
+import { generateReport, generateCourseSummaryReport, generateGroupWrittenRubricPdf, generateStudentRubricPdf } from '../utils/pdfGenerator';
 
 const AdminDashboard = () => {
   const [groups, setGroups] = useState([]);
@@ -26,6 +26,7 @@ const AdminDashboard = () => {
   
   // Estado para modal de resumen
   const [summaryGroup, setSummaryGroup] = useState(null);
+  const [activeSummaryTab, setActiveSummaryTab] = useState('promedios');
 
 
   // Estado para modal de resumen
@@ -55,6 +56,16 @@ const AdminDashboard = () => {
 
   // Estado para creación de nuevos grupos
   const [isAddGroupModalOpen, setIsAddGroupModalOpen] = useState(false);
+  const [isEditGroupModalOpen, setIsEditGroupModalOpen] = useState(false);
+  const [editingGroupId, setEditingGroupId] = useState(null);
+  const [editGroupData, setEditGroupData] = useState({
+    id: '',
+    course: '',
+    theme: '',
+    tutor_name: '',
+    guia_name: '',
+    revisor_name: ''
+  });
   const [isSavingGroup, setIsSavingGroup] = useState(false);
   const [newGroupData, setNewGroupData] = useState({
     id: '',
@@ -343,6 +354,122 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleOpenEditGroup = (group) => {
+    setEditingGroupId(group.id);
+    setEditGroupData({
+      id: group.id,
+      course: group.course || '',
+      theme: group.theme || '',
+      tutor_name: group.tutor_name || '',
+      guia_name: group.guia_name || '',
+      revisor_name: group.revisor_name || ''
+    });
+    setIsEditGroupModalOpen(true);
+  };
+
+  const handleUpdateGroup = async (e) => {
+    if (e) e.preventDefault();
+    const oldId = editingGroupId;
+    const newId = editGroupData.id.trim().toUpperCase();
+    const course = editGroupData.course.trim();
+    const theme = editGroupData.theme.trim();
+    const tutor_name = editGroupData.tutor_name.trim();
+    const guia_name = editGroupData.guia_name.trim();
+    const revisor_name = editGroupData.revisor_name.trim();
+
+    if (!newId || !course) {
+      alert("El ID del grupo y el Curso son campos obligatorios.");
+      return;
+    }
+
+    setIsSavingGroup(true);
+    try {
+      if (newId !== oldId) {
+        // 1. Verificar si el nuevo ID ya existe
+        const { data: existingGroup } = await supabase
+          .from('groups')
+          .select('id')
+          .eq('id', newId)
+          .maybeSingle();
+
+        if (existingGroup) {
+          alert(`Error: Ya existe un grupo registrado con el código "${newId}".`);
+          setIsSavingGroup(false);
+          return;
+        }
+
+        // Obtener datos actuales del grupo para copiarlos
+        const currentGroup = groups.find(g => g.id === oldId);
+        if (!currentGroup) throw new Error("Grupo no encontrado.");
+
+        // 2. Insertar nuevo grupo con el nuevo ID y copiar datos
+        const { error: insertError } = await supabase.from('groups').insert({
+          id: newId,
+          course: course,
+          theme: theme,
+          tutor_name: tutor_name || 'Sin asignar',
+          guia_name: guia_name || 'Sin asignar',
+          revisor_name: revisor_name || 'Sin asignar',
+          plagiarism_percentage: currentGroup.plagiarism_percentage,
+          ai_percentage: currentGroup.ai_percentage,
+          evaluation_status: currentGroup.evaluation_status
+        });
+
+        if (insertError) throw insertError;
+
+        // 3. Actualizar tablas relacionadas
+        const { error: teachersError } = await supabase
+          .from('teachers_registry')
+          .update({ group_id: newId })
+          .eq('group_id', oldId);
+        if (teachersError) console.error("Error actualizando docentes:", teachersError);
+
+        const { error: studentsError } = await supabase
+          .from('students')
+          .update({ group_id: newId })
+          .eq('group_id', oldId);
+        if (studentsError) console.error("Error actualizando estudiantes:", studentsError);
+
+        const { error: writtenError } = await supabase
+          .from('evaluations_written')
+          .update({ group_id: newId })
+          .eq('group_id', oldId);
+        if (writtenError) console.error("Error actualizando evaluaciones escritas:", writtenError);
+
+        // 4. Eliminar el grupo antiguo
+        const { error: deleteError } = await supabase
+          .from('groups')
+          .delete()
+          .eq('id', oldId);
+        if (deleteError) throw deleteError;
+
+        alert("Grupo modificado con éxito.");
+      } else {
+        // Actualizar curso, tema y docentes del grupo existente
+        const { error } = await supabase
+          .from('groups')
+          .update({ 
+            course, 
+            theme,
+            tutor_name: tutor_name || 'Sin asignar',
+            guia_name: guia_name || 'Sin asignar',
+            revisor_name: revisor_name || 'Sin asignar'
+          })
+          .eq('id', oldId);
+
+        if (error) throw error;
+        alert("Grupo modificado con éxito.");
+      }
+
+      setIsEditGroupModalOpen(false);
+      fetchGroups();
+    } catch (e) {
+      alert("Error al actualizar el grupo: " + e.message);
+    } finally {
+      setIsSavingGroup(false);
+    }
+  };
+
   const calculateWrittenAvg = (evaluation) => {
     if(!evaluation) return 0;
     const scores = [
@@ -454,9 +581,19 @@ const AdminDashboard = () => {
                   g.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   g.students?.some(s => s.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
                 ).map((group) => (
-                  <tr key={group.id} onDoubleClick={() => isGroupFullyCompleted(group) && setSummaryGroup(group)} style={{ cursor: isGroupFullyCompleted(group) ? 'pointer' : 'default' }}>
+                  <tr key={group.id} onDoubleClick={() => { if (isGroupFullyCompleted(group)) { setSummaryGroup(group); setActiveSummaryTab('promedios'); } }} style={{ cursor: isGroupFullyCompleted(group) ? 'pointer' : 'default' }}>
                     <td style={{ maxWidth: '300px' }}>
-                      <span className="badge badge-primary mb-2">{group.id} ({group.course})</span>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="badge badge-primary">{group.id} ({group.course})</span>
+                        <button 
+                          className="text-primary hover:text-blue-700" 
+                          onClick={() => handleOpenEditGroup(group)}
+                          title="Modificar Datos del Grupo (Curso, Código, Tema)"
+                          style={{ border: 'none', background: 'none', cursor: 'pointer', display: 'inline-flex', padding: '2px' }}
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                      </div>
                       <div className="mt-2">
                         {group.students?.map(s => (
                           <div key={s.id} className="flex items-center justify-between gap-2 mb-2 p-2 rounded transition-colors" style={{fontSize: '0.85rem', backgroundColor: 'var(--bg-surface-hover)', border: '1px solid var(--border-light)'}}>
@@ -642,7 +779,7 @@ const AdminDashboard = () => {
                           Descargar Informe
                         </button>
                         {isGroupFullyCompleted(group) && (
-                          <button className="btn btn-primary" style={{backgroundColor: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd'}} onClick={() => setSummaryGroup(group)}>
+                          <button className="btn btn-primary" style={{backgroundColor: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd'}} onClick={() => { setSummaryGroup(group); setActiveSummaryTab('promedios'); }}>
                             <Eye size={16} className="mr-1 inline"/> Ver Resumen
                           </button>
                         )}
@@ -698,105 +835,194 @@ const AdminDashboard = () => {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
           <div className="surface p-6 overflow-y-auto max-h-[90vh]" style={{ width: '100%', maxWidth: '800px', backgroundColor: 'var(--bg-surface)', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="h2 text-primary">Resumen General: Grupo {summaryGroup.id}</h2>
-              <button onClick={() => setSummaryGroup(null)} className="btn btn-secondary p-2"><X size={20}/></button>
+              <h2 className="h2 text-primary m-0">Resumen General: Grupo {summaryGroup.id}</h2>
+              <button onClick={() => setSummaryGroup(null)} className="btn btn-secondary p-2" style={{ border: 'none', background: 'none' }}><X size={20}/></button>
+            </div>
+
+            {/* Tab Bar */}
+            <div className="flex gap-6 mb-6" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem' }}>
+              <button 
+                className={`pb-2 px-1 font-semibold text-sm transition-all`} 
+                onClick={() => setActiveSummaryTab('promedios')}
+                style={{ 
+                  cursor: 'pointer', 
+                  background: 'none', 
+                  border: 'none',
+                  color: activeSummaryTab === 'promedios' ? 'var(--color-primary)' : 'var(--text-muted)',
+                  borderBottom: activeSummaryTab === 'promedios' ? '2px solid var(--color-primary)' : '2px solid transparent',
+                  marginBottom: '-1px'
+                }}
+              >
+                📊 Promedios Generales
+              </button>
+              <button 
+                className={`pb-2 px-1 font-semibold text-sm transition-all`} 
+                onClick={() => setActiveSummaryTab('rubricas')}
+                style={{ 
+                  cursor: 'pointer', 
+                  background: 'none', 
+                  border: 'none',
+                  color: activeSummaryTab === 'rubricas' ? 'var(--color-primary)' : 'var(--text-muted)',
+                  borderBottom: activeSummaryTab === 'rubricas' ? '2px solid var(--color-primary)' : '2px solid transparent',
+                  marginBottom: '-1px'
+                }}
+              >
+                📄 Rúbricas de Evaluación
+              </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="p-4 bg-gray-50 rounded border border-gray-200">
-                <h3 className="font-bold text-lg mb-4 text-primary">Promedio Proyecto Escrito</h3>
-                <div className="space-y-2 text-sm">
-                  {['tutor', 'guia', 'revisor'].map(role => {
-                    const ev = summaryGroup.evaluations_written?.find(e => e.evaluator_role === role);
-                    const avg = ev ? calculateWrittenAvg(ev) : '0.00';
-                    const tName = summaryGroup[`${role}_name`] || 'N/A';
-                    return <div key={role} className="flex justify-between border-b pb-1"><span>{role.charAt(0).toUpperCase() + role.slice(1)} ({tName}):</span> <strong>{avg} / 10.00</strong></div>;
-                  })}
-                </div>
-                {(() => {
-                  const penalty = calculatePenalty(summaryGroup);
-                  const writtenAvgRaw = ['tutor', 'guia', 'revisor'].reduce((acc, role) => {
-                    const ev = summaryGroup.evaluations_written?.find(e => e.evaluator_role === role);
-                    return acc + Number(ev ? calculateWrittenAvg(ev) : 0);
-                  }, 0) / 3;
-                  const writtenAvgNum = Math.max(0, writtenAvgRaw - penalty);
-                  return (
-                    <>
-                      {penalty > 0 && (
-                        <div className="flex justify-between text-danger font-bold mt-2 text-sm border-t pt-2">
-                          <span>Penalización (Plagio/IA &gt; 15%):</span>
-                          <span>-{penalty.toFixed(2)} pts</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-success font-bold mt-4 text-lg">
-                        <span>General Escrito:</span> 
-                        <span>{writtenAvgNum.toFixed(2)} / 10.00</span>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-
-            <h3 className="font-bold text-lg mb-2 text-primary">Promedios Individuales (Oral + Práctico + Final)</h3>
-            <div className="table-container">
-              <table className="table mb-0">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th>Estudiante</th>
-                    <th>Oral (T / G / R)</th>
-                    <th>P. Escrito</th>
-                    <th>P. Oral</th>
-                    <th>P. Práctico</th>
-                    <th>Nota Final</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summaryGroup.students?.map(student => {
-                    const oralEvs = student.evaluations_oral || [];
-                    const getOralForRole = (role) => {
-                      const o = oralEvs.find(e => e.evaluator_role === role);
-                      if(!o) return 0;
-                      return (Number(o.score_communication||0) + Number(o.score_knowledge||0) + Number(o.score_answers||0) + Number(o.score_time||0))/4;
-                    };
-                    const tO = getOralForRole('tutor');
-                    const gO = getOralForRole('guia');
-                    const rO = getOralForRole('revisor');
-                    const avgOral = ((tO + gO + rO)/3);
-                    
-                    const pScores = student.evaluations_practical || [];
-                    const pTotal = pScores.reduce((acc, p) => acc + Number(p.final_score || 0), 0);
-                    const avgPractical = pScores.length ? pTotal / pScores.length : 0.0;
-
-                    const penalty = calculatePenalty(summaryGroup);
-                    const writtenAvgRaw = ['tutor', 'guia', 'revisor'].reduce((acc, role) => {
+            {activeSummaryTab === 'promedios' && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="p-4 bg-gray-50 rounded border border-gray-200" style={{ backgroundColor: 'var(--bg-surface-hover)', borderColor: 'var(--border-light)' }}>
+                    <h3 className="font-bold text-lg mb-4 text-primary">Promedio Proyecto Escrito</h3>
+                    <div className="space-y-2 text-sm">
+                      {['tutor', 'guia', 'revisor'].map(role => {
+                        const ev = summaryGroup.evaluations_written?.find(e => e.evaluator_role === role);
+                        const avg = ev ? calculateWrittenAvg(ev) : '0.00';
+                        const tName = summaryGroup[`${role}_name`] || 'N/A';
+                        return <div key={role} className="flex justify-between border-b pb-1" style={{ borderColor: 'var(--border-light)' }}><span>{role.charAt(0).toUpperCase() + role.slice(1)} ({tName}):</span> <strong>{avg} / 10.00</strong></div>;
+                      })}
+                    </div>
+                    {(() => {
+                      const penalty = calculatePenalty(summaryGroup);
+                      const writtenAvgRaw = ['tutor', 'guia', 'revisor'].reduce((acc, role) => {
                         const ev = summaryGroup.evaluations_written?.find(e => e.evaluator_role === role);
                         return acc + Number(ev ? calculateWrittenAvg(ev) : 0);
                       }, 0) / 3;
-                    const writtenAvgNum = Math.max(0, writtenAvgRaw - penalty);
+                      const writtenAvgNum = Math.max(0, writtenAvgRaw - penalty);
+                      return (
+                        <>
+                          {penalty > 0 && (
+                            <div className="flex justify-between text-danger font-bold mt-2 text-sm border-t pt-2" style={{ borderColor: 'var(--border-light)' }}>
+                              <span>Penalización (Plagio/IA &gt; 15%):</span>
+                              <span>-{penalty.toFixed(2)} pts</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-success font-bold mt-4 text-lg">
+                            <span>General Escrito:</span> 
+                            <span>{writtenAvgNum.toFixed(2)} / 10.00</span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
 
-                    const finalScore = ((writtenAvgNum + avgOral + avgPractical) / 3).toFixed(2);
-                    
-                    return (
-                      <tr key={student.id}>
-                        <td className="font-medium">{student.full_name}</td>
-                        <td className="text-muted" style={{fontSize:'0.85rem'}}>
-                          T: {tO.toFixed(2)} | G: {gO.toFixed(2)} | R: {rO.toFixed(2)}
-                        </td>
-                        <td className="font-bold">{writtenAvgNum.toFixed(2)}</td>
-                        <td className="font-bold">{avgOral.toFixed(2)}</td>
-                        <td className="font-bold text-primary">{avgPractical.toFixed(2)}</td>
-                        <td className="text-success font-bold" style={{fontSize:'1.1em'}}>
-                          {finalScore} / 10.00
-                        </td>
+                <h3 className="font-bold text-lg mb-2 text-primary">Promedios Individuales (Oral + Práctico + Final)</h3>
+                <div className="table-container">
+                  <table className="table mb-0">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th>Estudiante</th>
+                        <th>Oral (T / G / R)</th>
+                        <th>P. Escrito</th>
+                        <th>P. Oral</th>
+                        <th>P. Práctico</th>
+                        <th>Nota Final</th>
                       </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {summaryGroup.students?.map(student => {
+                        const oralEvs = student.evaluations_oral || [];
+                        const getOralForRole = (role) => {
+                          const o = oralEvs.find(e => e.evaluator_role === role);
+                          if(!o) return 0;
+                          return (Number(o.score_communication||0) + Number(o.score_knowledge||0) + Number(o.score_answers||0) + Number(o.score_time||0))/4;
+                        };
+                        const tO = getOralForRole('tutor');
+                        const gO = getOralForRole('guia');
+                        const rO = getOralForRole('revisor');
+                        const avgOral = ((tO + gO + rO)/3);
+                        
+                        const pScores = student.evaluations_practical || [];
+                        const pTotal = pScores.reduce((acc, p) => acc + Number(p.final_score || 0), 0);
+                        const avgPractical = pScores.length ? pTotal / pScores.length : 0.0;
+
+                        const penalty = calculatePenalty(summaryGroup);
+                        const writtenAvgRaw = ['tutor', 'guia', 'revisor'].reduce((acc, role) => {
+                            const ev = summaryGroup.evaluations_written?.find(e => e.evaluator_role === role);
+                            return acc + Number(ev ? calculateWrittenAvg(ev) : 0);
+                          }, 0) / 3;
+                        const writtenAvgNum = Math.max(0, writtenAvgRaw - penalty);
+
+                        const finalScore = ((writtenAvgNum + avgOral + avgPractical) / 3).toFixed(2);
+                        
+                        return (
+                          <tr key={student.id}>
+                            <td className="font-medium">{student.full_name}</td>
+                            <td className="text-muted" style={{fontSize:'0.85rem'}}>
+                              T: {tO.toFixed(2)} | G: {gO.toFixed(2)} | R: {rO.toFixed(2)}
+                            </td>
+                            <td className="font-bold">{writtenAvgNum.toFixed(2)}</td>
+                            <td className="font-bold">{avgOral.toFixed(2)}</td>
+                            <td className="font-bold text-primary">{avgPractical.toFixed(2)}</td>
+                            <td className="text-success font-bold" style={{fontSize:'1.1em'}}>
+                              {finalScore} / 10.00
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {activeSummaryTab === 'rubricas' && (
+              <div className="space-y-6 animate-fade-in">
+                {/* Rúbrica Proyecto Escrito */}
+                <div className="p-5 rounded-lg border transition-all hover:shadow-md" style={{ borderColor: 'var(--border-light)', backgroundColor: 'var(--bg-surface-hover)' }}>
+                  <div className="flex justify-between items-center flex-wrap gap-4">
+                    <div>
+                      <h4 className="font-bold text-lg text-primary mb-1" style={{ marginTop: 0 }}>Rúbrica de Proyecto Escrito (Grupal)</h4>
+                      <p className="text-muted text-sm mb-0">Imprime el informe detallado en PDF con la rúbrica de 14 criterios de la parte escrita evaluada por la comisión.</p>
+                      <div className="mt-2 flex gap-4 text-xs text-muted">
+                        <span><strong>Tema:</strong> {summaryGroup.theme || 'N/A'}</span>
+                        <span><strong>Curso:</strong> {summaryGroup.course || 'N/A'}</span>
+                      </div>
+                    </div>
+                    <button 
+                      className="btn btn-success flex items-center gap-2"
+                      style={{ padding: '0.6rem 1.2rem', fontSize: '0.88rem' }}
+                      onClick={() => generateGroupWrittenRubricPdf(summaryGroup)}
+                    >
+                      <BookOpen size={16} /> Imprimir Rúbrica Escrita
+                    </button>
+                  </div>
+                </div>
+
+                {/* Rúbricas Individuales por Estudiante */}
+                <div>
+                  <h4 className="font-bold text-lg text-primary mb-3">Rúbricas Individuales por Estudiante</h4>
+                  <p className="text-muted text-sm mb-4">Descarga la rúbrica individualizada de cada alumno con el desglose de su sustentación oral, su proyecto práctico y el promedio final.</p>
+                  
+                  <div className="space-y-3">
+                    {summaryGroup.students?.map(student => (
+                      <div 
+                        key={student.id} 
+                        className="flex justify-between items-center p-4 rounded-lg border transition-all hover:bg-gray-50"
+                        style={{ borderColor: 'var(--border-light)' }}
+                      >
+                        <div>
+                          <span className="font-semibold text-base block">{student.full_name}</span>
+                          <span className="text-xs text-muted block">Grupo: {summaryGroup.id}</span>
+                        </div>
+                        <button 
+                          className="btn btn-primary flex items-center gap-2"
+                          style={{ backgroundColor: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd', padding: '0.5rem 0.85rem', fontSize: '0.85rem' }}
+                          onClick={() => generateStudentRubricPdf(summaryGroup, student)}
+                        >
+                          <Users size={15} /> Imprimir Rúbrica Individual
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
             
-            <div className="mt-6 text-right">
+            <div className="mt-6 text-right pt-4 border-t" style={{ borderColor: 'var(--border-light)' }}>
               <button className="btn btn-primary" onClick={() => setSummaryGroup(null)}>Cerrar Resumen</button>
             </div>
           </div>
@@ -893,6 +1119,106 @@ const AdminDashboard = () => {
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={isSavingGroup}>
                   {isSavingGroup ? 'Guardando...' : 'Crear Grupo'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      , document.body)}
+
+      {/* Modal de Modificar Grupo */}
+      {isEditGroupModalOpen && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
+          <div className="surface p-6 overflow-y-auto max-h-[90vh]" style={{ width: '100%', maxWidth: '550px', backgroundColor: 'var(--bg-surface)', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="h2 text-primary m-0 flex items-center gap-2" style={{ fontSize: '1.5rem', marginBottom: 0 }}>
+                <Edit2 size={24} /> Modificar Información del Grupo
+              </h2>
+              <button onClick={() => setIsEditGroupModalOpen(false)} className="btn btn-secondary p-2" style={{ border: 'none', background: 'none' }}><X size={20}/></button>
+            </div>
+
+            <form onSubmit={handleUpdateGroup} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label font-semibold">ID del Grupo *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej: G-C2"
+                    className="form-control"
+                    value={editGroupData.id}
+                    onChange={e => setEditGroupData({ ...editGroupData, id: e.target.value })}
+                  />
+                  <small className="text-muted" style={{ fontSize: '0.75rem', display: 'block', marginTop: '4px' }}>
+                    Si cambias el código, se actualizarán todos los estudiantes y evaluaciones asociadas de forma segura.
+                  </small>
+                </div>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label font-semibold">Curso / Paralelo *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej: 3 BGU C"
+                    className="form-control"
+                    value={editGroupData.course}
+                    onChange={e => setEditGroupData({ ...editGroupData, course: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label font-semibold">Tema de Investigación (Estudio de Caso)</label>
+                <input
+                  type="text"
+                  placeholder="Tema de investigación..."
+                  className="form-control"
+                  value={editGroupData.theme}
+                  onChange={e => setEditGroupData({ ...editGroupData, theme: e.target.value })}
+                />
+              </div>
+
+              <hr style={{ border: 'none', borderTop: '1px solid var(--border-light)', margin: '1.5rem 0' }} />
+              <h3 className="h3" style={{ fontSize: '1rem', marginBottom: '1rem' }}>Asignación de Docentes</h3>
+
+              <div className="space-y-3">
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label text-xs uppercase tracking-wider font-semibold text-primary">Docente Tutor</label>
+                  <input
+                    type="text"
+                    placeholder="Nombre del Tutor"
+                    className="form-control"
+                    value={editGroupData.tutor_name}
+                    onChange={e => setEditGroupData({ ...editGroupData, tutor_name: e.target.value })}
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label text-xs uppercase tracking-wider font-semibold text-primary">Docente Guía</label>
+                  <input
+                    type="text"
+                    placeholder="Nombre del Guía"
+                    className="form-control"
+                    value={editGroupData.guia_name}
+                    onChange={e => setEditGroupData({ ...editGroupData, guia_name: e.target.value })}
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label text-xs uppercase tracking-wider font-semibold text-primary">Docente Revisor</label>
+                  <input
+                    type="text"
+                    placeholder="Nombre del Revisor"
+                    className="form-control"
+                    value={editGroupData.revisor_name}
+                    onChange={e => setEditGroupData({ ...editGroupData, revisor_name: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end mt-6 pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
+                <button type="button" onClick={() => setIsEditGroupModalOpen(false)} className="btn btn-secondary" disabled={isSavingGroup}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={isSavingGroup}>
+                  {isSavingGroup ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
               </div>
             </form>
